@@ -36,6 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null);
     deleteCookie('authToken');
     localStorage.removeItem('userInfo');
+    localStorage.removeItem('advisorData');
     localStorage.removeItem("selectedDesignation");
     localStorage.removeItem("selectedEmployee");
     router.push('/signin');

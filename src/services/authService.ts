@@ -65,7 +65,7 @@ export const login = async (email: string, password: string): Promise<LoginRespo
  */
 export const forgotPassword = async (email: string): Promise<ApiResponse<null>> => {
   try {
-    const response = await fetch(`${API_URL}${process.env.NEXT_PUBLIC_FORGOT_PASSWORD_ENDPOINT}`, {
+    const response = await fetch(`${API_URL}/referrals/forgot-password-advisor`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -104,7 +104,7 @@ export const resetPasswordWithToken = async (
   confirmPassword: string
 ): Promise<ApiResponse<null>> => {
   try {
-    const response = await fetch(`${API_URL}${process.env.NEXT_PUBLIC_RESET_PASSWORD_WITH_TOKEN_ENDPOINT}`, {
+    const response = await fetch(`${API_URL}/referrals/reset-password-with-token-advisor`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

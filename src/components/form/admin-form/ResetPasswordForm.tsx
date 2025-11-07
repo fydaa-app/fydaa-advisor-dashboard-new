@@ -1,19 +1,14 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import ComponentCard from "../../common/ComponentCard";
-import Form from "../Form";
 import Input from "../input/InputField";
 import Button from "../../ui/button/Button";
 import Label from "../Label";
 import { EyeCloseIcon, EyeIcon } from "../../../icons";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import { getCookie } from "cookies-next";
 import { resetPassword } from "@/services";
-
-interface EmployeeData {
-  email: string;
-}
+import { useAuth } from "@/context/AuthContext";
 
 interface ResetPasswordData {
   email: string;
@@ -24,7 +19,7 @@ interface ResetPasswordData {
 
 export default function ResetPasswordForm() {
   const router = useRouter();
-  const [employeeData, setEmployeeData] = useState<EmployeeData | null>(null);
+  const { user } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState<Omit<ResetPasswordData, 'email'>>({
     oldPassword: "",
@@ -32,20 +27,6 @@ export default function ResetPasswordForm() {
     confirmPassword: "",
   });
   const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    // Get employee data from cookie
-    const employeeDataCookie = getCookie('employeeData');
-    if (employeeDataCookie) {
-      try {
-        const parsedData = JSON.parse(employeeDataCookie.toString());
-        setEmployeeData(parsedData);
-      } catch (error) {
-        console.error('Error parsing employee data cookie:', error);
-        toast.error("Failed to load user data");
-      }
-    }
-  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -66,13 +47,13 @@ export default function ResetPasswordForm() {
         return;
       }
 
-      if (!employeeData?.email) {
+      if (!user?.email) {
         toast.error("User email not found");
         return;
       }
 
       const result = await resetPassword(
-        employeeData.email,
+        user.email,
         formData.oldPassword,
         formData.newPassword,
         formData.confirmPassword
@@ -101,19 +82,23 @@ export default function ResetPasswordForm() {
     }
   };
 
-  if (!employeeData) {
-    return <div>Loading user data...</div>;
+  if (!user) {
+    return (
+      <ComponentCard title="Reset password">
+        <div className="text-center py-8 text-gray-500">Loading user data...</div>
+      </ComponentCard>
+    );
   }
 
   return (
     <ComponentCard title="Reset password">
-      <Form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div className="col-span-full">
             <Label>Email</Label>
             <Input
               type="email"
-              value={employeeData.email}
+              value={user.email}
               disabled
               readOnly
             />
@@ -205,7 +190,7 @@ export default function ResetPasswordForm() {
             </Button>
           </div>
         </div>
-      </Form>
+      </form>
     </ComponentCard>
   );
 }

@@ -79,6 +79,15 @@ export default function SignInForm() {
         role: role
       };
 
+      // Store full advisor data in localStorage for profile page
+      localStorage.setItem('advisorData', JSON.stringify({
+        id: data.advisor.id,
+        name: data.advisor.name,
+        email: data.advisor.email,
+        mobile: data.advisor.mobile,
+        experienceInYears: data.advisor.experienceInYears
+      }));
+
       // Update auth context (this will handle navigation)
       login(data.token, employeeData);
     } catch (err) {
