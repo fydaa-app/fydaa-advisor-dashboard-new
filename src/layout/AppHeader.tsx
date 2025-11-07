@@ -15,6 +15,7 @@ import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
 import Button from "@/components/ui/button/Button";
 import Cookies from 'js-cookie';
+import { getDesignations, getEmployees } from "@/services";
 
 interface DesignationItem {
   level: number;
@@ -74,31 +75,8 @@ const AppHeader: React.FC = () => {
     const fetchDesignations = async () => {
       setIsLoadingDesignations(true);
       try {
-        const url = `${process.env.NEXT_PUBLIC_API_URL}${process.env.NEXT_PUBLIC_DESIGNATION_LIST_ENDPOINT}`;    
-        const response = await fetch(url, {
-                headers: {
-                    Authorization: `Bearer ${document.cookie.split("; ").find(row => row.startsWith("authToken="))?.split("=")[1] || ""}`,
-                }
-            }
-        );
-        if (response.status === 401) {
-            Cookies.remove('authToken'); 
-            window.location.href = "/signin";          
-        }
-
-        if (!response.ok) {
-            throw new Error("Failed to fetch");
-        }
-
-        const data = await response.json();
-        
-        if (data.success) {
-          const designationOptions = data.data.map((item: DesignationItem) => ({
-            value: item.level.toString(),
-            label: item.hierarchyName
-          }));
-          setDesignations(designationOptions);
-        }
+        const designationOptions = await getDesignations();
+        setDesignations(designationOptions);
       } catch (error) {
         console.error("Failed to fetch designations:", error);
       } finally {
@@ -117,31 +95,8 @@ const AppHeader: React.FC = () => {
       const fetchEmployees = async () => {
         setIsLoadingEmployees(true);
         try {
-          const url = `${process.env.NEXT_PUBLIC_API_URL}${process.env.NEXT_PUBLIC_ROLE_WISE_EMPLOYEE_LIST_ENDPOINT}?role=${selectedDesignation}`;    
-          const response = await fetch(url, {
-                  headers: {
-                      Authorization: `Bearer ${document.cookie.split("; ").find(row => row.startsWith("authToken="))?.split("=")[1] || ""}`,
-                  }
-              }
-          );
-          if (response.status === 401) {
-              Cookies.remove('authToken'); 
-              window.location.href = "/signin";          
-          }
-
-          if (!response.ok) {
-              throw new Error("Failed to fetch");
-          }
-
-          const data = await response.json();
-
-          if (data.success) {
-            const employeeOptions = data.data.map((item: EmployeeItem) => ({
-              value: item.id.toString(),
-              label: item.name
-            }));
-            setEmployees(employeeOptions);
-          }
+          const employeeOptions = await getEmployees(selectedDesignation);
+          setEmployees(employeeOptions);
         } catch (error) {
           console.error("Failed to fetch employees:", error);
         } finally {

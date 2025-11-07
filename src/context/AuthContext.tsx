@@ -43,28 +43,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Check if user is authenticated
   useEffect(() => {
-    const authToken = getCookie('authToken') as string | undefined;
-    
     if (typeof window !== 'undefined') {
       setIsLoading(true);
       
+      const authToken = getCookie('authToken') as string | undefined;
+      
       if (authToken) {
         try {
-          const userData = JSON.parse(localStorage.getItem('userInfo') || '{}');
+          const userInfoString = localStorage.getItem('userInfo');
+          
+          // If we have a token but no userInfo, don't log out immediately
+          // This might happen during login before localStorage is set
+          if (!userInfoString) {
+            setIsLoading(false);
+            return;
+          }
+          
+          const userData = JSON.parse(userInfoString);
+
+          // Validate userData has required properties
+          if (!userData?.id || !userData?.role) {
+            handleLogout();
+            return;
+          }
+
           setUser(userData);
           setToken(authToken);
 
-          if (pathname === '/signin' || pathname === '/sign-up' || pathname === '/') {
-            router.push('/');
+          // Redirect if on auth pages
+          if (pathname === '/signin' || pathname === '/signup') {
+            router.replace('/');
           }
         } catch (error) {
           console.error("Error parsing user data:", error);
           handleLogout();
         }
       } else {
-        const publicPaths = ['/signin', '/signup', '/reset-password'];
-        if (!publicPaths.includes(pathname) && pathname.startsWith('/admin')) {
-          router.push('/signin');
+        // No token found - redirect to signin if on protected route
+        const publicPaths = ['/signin', '/signup', '/reset-password', '/forgotpassword'];
+        if (!publicPaths.includes(pathname) && pathname !== '/') {
+          router.replace('/signin');
         }
       }
 
@@ -72,16 +90,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [pathname, router, handleLogout]);
 
+
   // Login function
   const login = (newToken: string, userData: Employee) => {
+    // Save to localStorage first (synchronous)
+    localStorage.setItem('userInfo', JSON.stringify(userData));
+    localStorage.setItem("selectedDesignation", userData?.role?.toString() ?? '');
+    localStorage.setItem("selectedEmployee", userData?.id?.toString() ?? '');
+    
+    // Update state - React will batch these updates
     setToken(newToken);
     setUser(userData);
-    localStorage.setItem('userInfo', JSON.stringify(userData));
-    localStorage.setItem("selectedDesignation", userData.role.toString());
-    localStorage.setItem("selectedEmployee", userData.id.toString());
     
-    router.push('/');
+    // Use a small delay to ensure state updates are processed and components re-render
+    // This prevents race conditions where ProtectedRoute checks isAuthenticated before state updates
+    setTimeout(() => {
+      router.replace('/');
+    }, 50);
   };
+
 
   const value = {
     user,

@@ -9,7 +9,7 @@ import { EyeCloseIcon, EyeIcon } from "../../../icons";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { getCookie } from "cookies-next";
-import Cookies from "js-cookie";
+import { resetPassword } from "@/services";
 
 interface EmployeeData {
   email: string;
@@ -71,29 +71,19 @@ export default function ResetPasswordForm() {
         return;
       }
 
-      const payload = {
-        email: employeeData.email,
-        ...formData
-      };
+      const result = await resetPassword(
+        employeeData.email,
+        formData.oldPassword,
+        formData.newPassword,
+        formData.confirmPassword
+      );
 
-      const AUTH_TOKEN = Cookies.get("authToken");
-      // Call your API endpoint
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${process.env.NEXT_PUBLIC_RESET_PASSWORD_ENDPOINT}`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${AUTH_TOKEN}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        toast.error(data.message || "Failed to reset password");
+      if (!result.success) {
+        toast.error(result.message || "Failed to reset password");
+        return;
       }
 
-      toast.success("Password reset successfully");
+      toast.success(result.message || "Password reset successfully");
       router.push('/signin'); // Redirect after success
     } catch (error: unknown) {
       console.error("Reset password error:", error);

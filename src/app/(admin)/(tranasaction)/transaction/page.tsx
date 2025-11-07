@@ -5,82 +5,9 @@ import ComponentCard from "@/components/common/ComponentCard";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import TransactionTable from "@/components/tables/TransactionTable";
 import { useGlobalContext } from "@/context/GlobalState";
-import Cookies from 'js-cookie';
 import Pagination from "@/components/tables/Pagination";
 import { useRouter, useSearchParams } from "next/navigation";
-
-interface Transaction {
-  userName: string;
-  orderAmount: number;
-  transactionType: string;
-  planName: string;
-  managerName: string;
-  date: string;
-  time: string;
-  mobileNumber: number;
-}
-
-async function fetchTransactions(
-    page: number,
-    selectedOption:string, 
-    selectedEmployee:string = "",
-    customDates: { start: string; end: string },
-    searchQuery: string = "",
-    appType: string = ""
-):
-    Promise<{ 
-        transactions: Transaction[]; 
-        error: string | null;
-        totalTransactions?: number;
-        limit?: number; 
-    }> {
-    try {
-
-        // Use different endpoint based on app type
-        let endpoint = process.env.NEXT_PUBLIC_TRANSACTIONS_LIST_ENDPOINT;
-        if (appType === "Fydaa") {
-            endpoint = "/referrals/transactions-list-mf";
-        }
-
-        let url = `${process.env.NEXT_PUBLIC_API_URL}${endpoint}?page=${page}`;
-    
-        if (selectedOption === 'custom') {
-          url += `&timeframe=custom&startDate=${customDates.start}&endDate=${customDates.end}`;
-        } else {
-          url += `&timeframe=${selectedOption || "yearly"}`;
-        }
-
-        if (searchQuery) {
-            url += `&search=${encodeURIComponent(searchQuery)}`;
-        }
-
-        if (selectedEmployee) {
-            url += `&employeeId=${selectedEmployee}`;
-        }
-
-        const response = await fetch(url, {
-                headers: {
-                    Authorization: `Bearer ${document.cookie.split("; ").find(row => row.startsWith("authToken="))?.split("=")[1] || ""}`,
-                }
-            }
-        );
-  
-        if (response.status === 401) {
-            Cookies.remove('authToken'); 
-            window.location.href = "/signin";          
-        }
-
-        if (!response.ok) {
-            throw new Error("Failed to fetch");
-        }
-
-        const data = await response.json();
-        return { transactions: Array.isArray(data.transactions) ? data.transactions : [], error: null, totalTransactions: data.totalTransactions, limit: data.limit };
-    } catch (err) {
-        console.error("Error fetching data:", err);
-        return { transactions: [], error: "Error fetching data" };
-    }
-}
+import { getTransactions, type Transaction } from "@/services";
 
 export default function TransactionTablesPage() {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -104,19 +31,26 @@ export default function TransactionTablesPage() {
 
     const fetchData = useCallback(async () => {
         try {
-            const { transactions, error, totalTransactions: apiTotalTransactions, limit } = await fetchTransactions(page, selectedOption, selectedEmployee, customDates, searchQuery, appType);
-            setTransactions(transactions);
-            setError(error);
+            const result = await getTransactions({
+                page,
+                selectedOption,
+                selectedEmployee: selectedEmployee || undefined,
+                customDates,
+                searchQuery,
+                appType,
+            });
+            setTransactions(result.transactions);
+            setError(result.error);
             
-            if (apiTotalTransactions && limit) {
-                const calculatedTotalPages = Math.ceil(apiTotalTransactions / limit);
+            if (result.totalTransactions && result.limit) {
+                const calculatedTotalPages = Math.ceil(result.totalTransactions / result.limit);
                 setTotalPages(calculatedTotalPages);
-                setTotalTransactions(apiTotalTransactions);
+                setTotalTransactions(result.totalTransactions);
             }
         } catch (err) {
             console.error("Error in fetchData:", err);
             setError("Failed to load data");
-        }finally {
+        } finally {
             setIsSearching(false);
         }
 

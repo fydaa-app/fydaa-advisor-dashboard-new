@@ -5,22 +5,9 @@ import Label from "@/components/form/Label";
 import { EyeCloseIcon, EyeIcon } from "@/icons";
 import Link from "next/link";
 import React, { useState, FormEvent, useRef } from "react";
-import { useRouter } from "next/navigation";
 import { setCookie } from "cookies-next";
 import { useAuth } from "@/context/AuthContext";
-
-// Define types for login response and form data
-interface LoginResponse {
-  message: string;
-  token: string;
-  employee: {
-    id: number;
-    name: string;
-    email: string;
-    role: string;
-  };
-  userData: null;
-}
+import { login as loginService } from "@/services";
 
 export default function SignInForm() {
   // State for form inputs and UI
@@ -38,9 +25,6 @@ export default function SignInForm() {
   const emailInputRef = useRef<HTMLInputElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
   
-  // Next.js router for navigation
-  const router = useRouter();
-  
   // Auth context
   const { login } = useAuth();
 
@@ -51,11 +35,9 @@ export default function SignInForm() {
     setIsLoading(true);
 
     try {
-      // Check if refs are available
       const emailValue = emailInputRef.current?.value || email;
       const passwordValue = passwordInputRef.current?.value || password;
 
-      // Validate inputs
       if (!emailValue || !passwordValue) {
         setError("Please enter both email and password");
         setIsLoading(false);
@@ -63,54 +45,49 @@ export default function SignInForm() {
       }
 
       // Perform login API call
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${process.env.NEXT_PUBLIC_LOGIN_ENDPOINT}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ 
-          email: emailValue, 
-          password: passwordValue 
-        }),
+      const data = await loginService(emailValue, passwordValue);
+
+      // Set cookie with appropriate expiration
+      const expiresIn = isChecked ? 30 : 1;
+      setCookie("authToken", data.token, { 
+        maxAge: expiresIn * 24 * 60 * 60,
+        path: "/",
+        sameSite: "lax"
       });
 
-      const data: LoginResponse = await response.json();
-
-      if (response.ok) {
-        // Set token in cookie (more secure than localStorage)
-        // Cookie expires in 1 day by default, or 30 days if "keep me logged in" is checked
-        const expiresIn = isChecked ? 30 : 1;
-        const cookieOptions = { 
-          expires: new Date(new Date().getTime() + expiresIn * 24 * 60 * 60 * 1000),
-          path: "/",
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "strict" as const // Change here: use 'as const'
-        };
-        
-        // Store auth token
-        setCookie("authToken", data.token, cookieOptions);
-        
-        // Store employee data in cookies
-        setCookie("employeeData", JSON.stringify(data.employee), cookieOptions);
-
-        
-        
-        // Update auth context
-        login(data.token, data.employee);
-
-        // Redirect to dashboard or home page
-        router.push("/");
-      } else {
-        // Handle login error
-        setError(data.message || "Login failed. Please try again.");
+      // Transform advisor data to Employee format
+      // Extract role from JWT token (it's in the token payload)
+      // For now, we'll decode it or use a default
+      let role = "advisor"; // Default role
+      try {
+        // Decode JWT token to get role
+        const tokenParts = data.token.split('.');
+        if (tokenParts.length === 3) {
+          const payload = JSON.parse(atob(tokenParts[1]));
+          role = payload.role || "advisor";
+        }
+      } catch (e) {
+        // If decoding fails, use default
+        role = "advisor";
       }
+
+      // Map advisor to Employee format
+      const employeeData = {
+        id: data.advisor.id,
+        name: data.advisor.name,
+        email: data.advisor.email,
+        role: role
+      };
+
+      // Update auth context (this will handle navigation)
+      login(data.token, employeeData);
     } catch (err) {
-      console.error("Login error:", err);
-      setError("An unexpected error occurred. Please try again later.");
+      setError(err instanceof Error ? err.message : "An unexpected error occurred.");
     } finally {
       setIsLoading(false);
     }
   };
+
 
   // Function to trigger form submission programmatically
   const submitForm = () => {

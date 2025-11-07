@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import { forgotPassword } from '@/services';
 
 const ForgotPasswordPage = () => {
   const [email, setEmail] = useState('');
@@ -14,21 +15,13 @@ const ForgotPasswordPage = () => {
     setMessage(null);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${process.env.NEXT_PUBLIC_FORGOT_PASSWORD_ENDPOINT}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      });
+      const result = await forgotPassword(email);
 
-      const data = await response.json();
-
-      if (response.ok) {
-        setMessage({ text: data.message, type: 'success' });
+      if (result.success) {
+        setMessage({ text: result.message || 'Password reset link sent successfully', type: 'success' });
       } else {
         setMessage({ 
-          text: data.message || 'Something went wrong', 
+          text: result.message || 'Something went wrong', 
           type: 'error' 
         });
       }
