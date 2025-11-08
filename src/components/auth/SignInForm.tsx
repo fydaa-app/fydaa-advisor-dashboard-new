@@ -66,7 +66,7 @@ export default function SignInForm() {
           const payload = JSON.parse(atob(tokenParts[1]));
           role = payload.role || "advisor";
         }
-      } catch (e) {
+      } catch  {
         // If decoding fails, use default
         role = "advisor";
       }

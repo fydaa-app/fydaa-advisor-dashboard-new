@@ -1,24 +1,24 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 // Helper function to get token from cookies
-const getAuthToken = (): string | null => {
-  if (typeof window !== 'undefined') {
-    const cookies = document.cookie.split(';');
-    const authCookie = cookies.find(cookie => 
-      cookie.trim().startsWith('authToken=')
-    );
-    return authCookie ? authCookie.split('=')[1] : null;
-  }
-  return null;
-};
+// const getAuthToken = (): string | null => {
+//   if (typeof window !== 'undefined') {
+//     const cookies = document.cookie.split(';');
+//     const authCookie = cookies.find(cookie => 
+//       cookie.trim().startsWith('authToken=')
+//     );
+//     return authCookie ? authCookie.split('=')[1] : null;
+//   }
+//   return null;
+// };
 
 // Helper function to handle 401 responses
-const handleUnauthorized = () => {
-  if (typeof window !== 'undefined') {
-    document.cookie = 'authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-    window.location.href = '/signin';
-  }
-};
+// const handleUnauthorized = () => {
+//   if (typeof window !== 'undefined') {
+//     document.cookie = 'authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+//     window.location.href = '/signin';
+//   }
+// };
 
 export interface LoginResponse {
   message: string;

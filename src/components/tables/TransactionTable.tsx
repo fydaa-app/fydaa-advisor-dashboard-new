@@ -1,4 +1,3 @@
-// components/tables/TransactionTable.tsx
 import React from "react";
 import {
   Table,
@@ -9,6 +8,7 @@ import {
 } from "../ui/table";
 import Badge from "../ui/badge/Badge";
 
+
 export interface TransactionTableProps {
   transactions: {
     userName: string;
@@ -18,10 +18,12 @@ export interface TransactionTableProps {
     managerName: string;
     date: string;
     time: string;
-    mobileNumber:number;
+    mobileNumber: number;
+    fromApp?: string;
   }[];
   error: string | null;
 }
+
 
 const formatCurrency = (value: number): string =>
   new Intl.NumberFormat("en-IN", {
@@ -29,11 +31,22 @@ const formatCurrency = (value: number): string =>
     currency: "INR",
   }).format(value);
 
+
+const getAppBadgeColor = (app: string | undefined): string => {
+  const appLower = (app || "").toLowerCase();
+  
+  if (appLower.includes("savestment")) return "info";
+  if (appLower.includes("fydaa")) return "success";
+  if (appLower.includes("advisor")) return "warning";
+  return "success"; // Changed from "default" to "success"
+};
+
+
 export default function TransactionTable({ transactions, error }: TransactionTableProps) {
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
       <div className="max-w-full overflow-x-auto">
-        <div className="min-w-[1102px]">
+        <div className="min-w-[1200px]">
           {error && <div className="m-4"><p style={{ color: "red" }}>{error}</p></div>}
           {!error && transactions.length > 0 ? (
             <Table>
@@ -57,6 +70,9 @@ export default function TransactionTable({ transactions, error }: TransactionTab
                   </TableCell>
                   <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">
                     Order Amount
+                  </TableCell>
+                  <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">
+                    App
                   </TableCell>                  
                   <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">
                     Date
@@ -92,6 +108,11 @@ export default function TransactionTable({ transactions, error }: TransactionTab
                     </TableCell>
                     <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                       {formatCurrency(transaction.orderAmount)}
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-start text-theme-sm dark:text-gray-400">
+                      <Badge color={getAppBadgeColor(transaction.fromApp) as any}>
+                        {transaction.fromApp || "Unknown"}
+                      </Badge>
                     </TableCell>
                     <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
                       {new Date(transaction.date).toLocaleString()}

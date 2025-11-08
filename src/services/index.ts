@@ -16,6 +16,7 @@ export {
   type TodaySalesData,
 } from './dashboardService';
 
+
 // Transaction services
 export {
   getTransactions,
@@ -23,6 +24,7 @@ export {
   type FetchTransactionsParams,
   type FetchTransactionsResponse,
 } from './transactionService';
+
 
 // Admin services
 export {
@@ -37,3 +39,15 @@ export {
 } from './adminService';
 
 
+// Advisor services
+export {
+  advisorService,
+  type AdvisorData,
+  type ApiResponse as AdvisorApiResponse,
+} from './advisorService';
+
+// Client services
+export {
+  clientService,
+  type ClientData,
+} from './clientService';

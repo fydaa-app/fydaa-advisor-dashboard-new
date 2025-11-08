@@ -14,28 +14,17 @@ import { Modal } from "@/components/ui/modal";
 import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
 import Button from "@/components/ui/button/Button";
-import Cookies from 'js-cookie';
-import { getDesignations, getEmployees } from "@/services";
-
-interface DesignationItem {
-  level: number;
-  hierarchyName: string;
-}
-
-interface EmployeeItem {
-  id: number;
-  name: string;
-}
+import { useAuth } from "@/context/AuthContext";
+import { useAdvisorClients } from "@/hooks/useAdvisorClients";
 
 const AppHeader: React.FC = () => {
   const { isOpen, openModal, closeModal } = useModal();
+  const { user } = useAuth();
+  
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
-  const [designations, setDesignations] = useState<{value: string, label: string}[]>([]);
-  const [employees, setEmployees] = useState<{value: string, label: string}[]>([]);
-  const [isLoadingDesignations, setIsLoadingDesignations] = useState(false);
-  const [isLoadingEmployees, setIsLoadingEmployees] = useState(false);
+  
   const { 
     isMobileOpen, 
     toggleSidebar, 
@@ -48,68 +37,17 @@ const AppHeader: React.FC = () => {
     customDates, 
     setCustomDates, 
     validateDates,
-    selectedDesignation,
-    setSelectedDesignation,
     selectedEmployee,
     setSelectedEmployee,
     appType,
     setAppType
   } = useGlobalContext();
 
-  // Get user role from token
-  const token = Cookies.get('authToken');
-  let userRole = '';
-  if (token) {
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      userRole = payload.role || payload.roleId || '';
-    } catch (error) {
-      console.error('Failed to decode token:', error);
-    }
-  }
-  const isPartner = userRole === "5";
-
-
-  // Fetch designations on component mount
-  useEffect(() => {
-    const fetchDesignations = async () => {
-      setIsLoadingDesignations(true);
-      try {
-        const designationOptions = await getDesignations();
-        setDesignations(designationOptions);
-      } catch (error) {
-        console.error("Failed to fetch designations:", error);
-      } finally {
-        setIsLoadingDesignations(false);
-      }
-    };
-
-    fetchDesignations();
-  }, []);
-
-  // Fetch employees when designation changes
-  useEffect(() => {
-    if (selectedDesignation) {
-      setSelectedEmployee("");
-      
-      const fetchEmployees = async () => {
-        setIsLoadingEmployees(true);
-        try {
-          const employeeOptions = await getEmployees(selectedDesignation);
-          setEmployees(employeeOptions);
-        } catch (error) {
-          console.error("Failed to fetch employees:", error);
-        } finally {
-          setIsLoadingEmployees(false);
-        }
-      };
-
-      fetchEmployees();
-    } else {
-      setEmployees([]);
-      setSelectedEmployee("");
-    }
-  }, [selectedDesignation]);
+  // Pass appType to the hook to filter clients
+  const { clientOptions, loading: isLoadingClients } = useAdvisorClients(
+    user?.id || null,
+    appType
+  );
 
   const handleToggle = () => {
     if (window.innerWidth >= 991) {
@@ -150,17 +88,15 @@ const AppHeader: React.FC = () => {
     }    
   };
 
-  const handleDesignationChange = (option: { value: string; label: string } | null) => {
-    setSelectedDesignation(option?.value || "");
-  };
-
-  const handleEmployeeChange = (option: { value: string; label: string } | null) => {
+  const handleClientChange = (option: { value: string; label: string } | null) => {
     setSelectedEmployee(option?.value || "");
   };
 
   const handleAppTypeChange = (option: { value: string; label: string } | null) => {
     if (option) {
       setAppType(option.value);
+      // Reset selected client when app type changes
+      setSelectedEmployee("");
     }
   };
 
@@ -295,34 +231,20 @@ const AppHeader: React.FC = () => {
               <ChevronDownIcon/>
             </span>
           </div>
-          {!isPartner && (
-            <div className="relative w-48">
-              <Select 
-                options={designations}
-                placeholder={isLoadingDesignations ? "Loading advisors..." : "Select Advisor"}
-                onChange={handleDesignationChange}
-                value={selectedDesignation || null}
-                className="dark:bg-dark-900"
-              />
-              <span className="absolute text-gray-500 -translate-y-1/2 pointer-events-none right-3 top-1/2 dark:text-gray-400">
-                <ChevronDownIcon/>
-              </span>
-            </div>
-          )}
-          {!isPartner && (
-            <div className="relative w-48">
-              <Select 
-                options={employees}
-                placeholder={!selectedDesignation ? "Select advisor first" : isLoadingEmployees ? "Loading employees..." : "Select Client"}
-                onChange={handleEmployeeChange}
-                value={selectedEmployee || null}
-                className="dark:bg-dark-900"
-              />
-              <span className="absolute text-gray-500 -translate-y-1/2 pointer-events-none right-3 top-1/2 dark:text-gray-400">
-                <ChevronDownIcon/>
-              </span>
-            </div>
-          )}
+
+          <div className="relative w-48">
+            <Select 
+              options={appType ? clientOptions : []}
+              placeholder={!appType ? "Select app type first" : isLoadingClients ? "Loading clients..." : "Select Client"}
+              onChange={handleClientChange}
+              value={selectedEmployee || null}
+              className="dark:bg-dark-900"
+            />
+            <span className="absolute text-gray-500 -translate-y-1/2 pointer-events-none right-3 top-1/2 dark:text-gray-400">
+              <ChevronDownIcon/>
+            </span>
+          </div>
+
           <div className="relative w-48">
             <Select 
               options={options}
@@ -335,6 +257,7 @@ const AppHeader: React.FC = () => {
               <ChevronDownIcon/>
             </span>
           </div>
+
           <div className="flex items-center gap-2 2xsm:gap-3">            
             <ThemeToggleButton />           
             <NotificationDropdown />            
@@ -342,6 +265,7 @@ const AppHeader: React.FC = () => {
           <UserDropdown /> 
         </div>
       </div>
+
       <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
         <div className="relative w-full p-4 overflow-y-auto bg-white no-scrollbar rounded-3xl dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14">
