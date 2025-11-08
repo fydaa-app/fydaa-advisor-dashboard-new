@@ -39,6 +39,49 @@ export interface FetchTransactionsResponse {
   limit?: number;
 }
 
+interface PortfolioDetail {
+  portfolioId: number;
+  portfolioName?: string;
+}
+
+interface ClientData {
+  id?: number;
+  userId?: number;
+}
+
+interface UserTransactionData {
+  userDetails?: {
+    firstName?: string;
+    lastName?: string;
+    mobileNumber?: string | number;
+    phone?: string | number;
+    fromApp?: string;
+    relationshipmanagerId?: number;
+    userTransactionDetails?: Array<{
+      portfolioId: number;
+      totalAmount?: number;
+      orderType?: string;
+      createdAt?: string;
+    }>;
+  };
+  relationshipManager?: {
+    name?: string;
+  };
+  portfolioDetails?: PortfolioDetail[];
+  userTransactionDetails?: Array<{
+    portfolioId: number;
+    totalAmount?: number;
+    orderType?: string;
+    createdAt?: string;
+  }>;
+  firstName?: string;
+  lastName?: string;
+  mobileNumber?: string | number;
+  phone?: string | number;
+  fromApp?: string;
+  relationshipmanagerId?: number;
+}
+
 // Cache for ALL transactions (not filtered by appType)
 let transactionsCache: Transaction[] = [];
 let cachedAdvisorId: number | null = null;
@@ -53,38 +96,37 @@ const isTransactionInDateRange = (
 ): boolean => {
   try {
     const txDate = new Date(transactionDate);
-    
-    // If no filter or "all" option, show everything
+
     if (!selectedOption || selectedOption === 'all' || selectedOption === '') {
       return true;
     }
-    
+
     if (selectedOption === 'custom' && customDates.start && customDates.end) {
       const startDate = new Date(customDates.start);
       const endDate = new Date(customDates.end);
       endDate.setHours(23, 59, 59, 999);
       return txDate >= startDate && txDate <= endDate;
     }
-    
+
     if (selectedOption === 'yearly') {
       const currentYear = new Date().getFullYear();
       return txDate.getFullYear() === currentYear;
     }
-    
+
     if (selectedOption === 'monthly') {
       const now = new Date();
       return txDate.getMonth() === now.getMonth() && txDate.getFullYear() === now.getFullYear();
     }
-    
+
     if (selectedOption === 'weekly') {
       const now = new Date();
       const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       return txDate >= weekAgo && txDate <= now;
     }
-    
+
     return true;
-  } catch (err) {
-    console.error("Date range check error:", err);
+  } catch (error) {
+    console.error("Date range check error:", error);
     return true;
   }
 };
@@ -94,7 +136,7 @@ const isTransactionInDateRange = (
  */
 const matchesSearchQuery = (transaction: Transaction, searchQuery: string): boolean => {
   if (!searchQuery) return true;
-  
+
   const query = searchQuery.toLowerCase();
   return (
     transaction.userName.toLowerCase().includes(query) ||
@@ -108,17 +150,17 @@ const matchesSearchQuery = (transaction: Transaction, searchQuery: string): bool
 /**
  * Fetch portfolio name from portfolioDetails using portfolioId
  */
-const getPortfolioName = (portfolioDetails: any[], portfolioId: number): string => {
+const getPortfolioName = (portfolioDetails: PortfolioDetail[], portfolioId: number): string => {
   if (!portfolioDetails || !Array.isArray(portfolioDetails)) return "N/A";
-  
-  const portfolio = portfolioDetails.find((p: any) => p.portfolioId === portfolioId);
+
+  const portfolio = portfolioDetails.find((p) => p.portfolioId === portfolioId);
   return portfolio?.portfolioName || "N/A";
 };
 
 /**
  * Convert mobile number string to number, handling various formats
  */
-const parseMobileNumber = (mobile: any): number => {
+const parseMobileNumber = (mobile: string | number | undefined): number => {
   if (typeof mobile === 'number') return mobile;
   if (typeof mobile === 'string') {
     const cleaned = mobile.replace(/\D/g, '');
@@ -131,7 +173,7 @@ const parseMobileNumber = (mobile: any): number => {
 /**
  * Extract and map transactions from user data
  */
-const extractTransactionsFromUserData = (userData: any): Transaction[] => {
+const extractTransactionsFromUserData = (userData: UserTransactionData): Transaction[] => {
   const transactions: Transaction[] = [];
 
   try {
@@ -139,14 +181,14 @@ const extractTransactionsFromUserData = (userData: any): Transaction[] => {
     const userName = `${userDetails.firstName || ""} ${userDetails.lastName || ""}`.trim() || "Unknown";
     const mobileNumber = parseMobileNumber(userDetails.mobileNumber || userDetails.phone);
     const fromApp = userDetails.fromApp || "Unknown";
-    
+
     const relationshipManager = userData.relationshipManager || {};
     const managerName = relationshipManager.name || String(userDetails.relationshipmanagerId || "N/A");
     const portfolioDetails = userData.portfolioDetails || [];
     const txDetails = userDetails.userTransactionDetails || userData.userTransactionDetails || [];
 
     if (Array.isArray(txDetails) && txDetails.length > 0) {
-      txDetails.forEach((tx: any) => {
+      txDetails.forEach((tx) => {
         const planName = getPortfolioName(portfolioDetails, tx.portfolioId);
 
         transactions.push({
@@ -162,8 +204,8 @@ const extractTransactionsFromUserData = (userData: any): Transaction[] => {
         });
       });
     }
-  } catch (err) {
-    console.error("Error extracting transactions:", err);
+  } catch (error) {
+    console.error("Error extracting transactions:", error);
   }
 
   return transactions;
@@ -181,17 +223,67 @@ const extractTime = (isoDateString: string): string => {
       minute: '2-digit',
       second: '2-digit',
     });
-  } catch (err) {
+  } catch {
     return "";
   }
 };
 
 /**
- * Fetch ALL transactions for advisor (cached, NOT filtered by appType)
+ * Fetch user data in parallel batches with controlled concurrency
+ */
+const fetchUserDataInBatches = async (
+  clientIds: number[],
+  token: string,
+  batchSize: number = 15
+): Promise<unknown[]> => {
+  const results: unknown[] = [];
+
+  // Process in batches to avoid overwhelming the server
+  for (let i = 0; i < clientIds.length; i += batchSize) {
+    const batch = clientIds.slice(i, i + batchSize);
+
+    console.log(`Fetching batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(clientIds.length / batchSize)}...`);
+
+    // Fetch all users in this batch in parallel
+    const batchPromises = batch.map(async (clientId) => {
+      const userUrl = `${API_URL}/referrals/view-user/${clientId}`;
+      const userResponse = await fetch(userUrl, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!userResponse.ok) {
+        throw new Error(`Failed to fetch user ${clientId}: ${userResponse.status}`);
+      }
+      return await userResponse.json();
+    });
+
+    // Use Promise.allSettled to continue even if some requests fail
+    const batchResults = await Promise.allSettled(batchPromises);
+
+    // Extract successful results
+    batchResults.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        results.push(result.value);
+      } else {
+        console.error(`Error fetching user ${batch[index]}:`, result.reason);
+      }
+    });
+  }
+
+  return results;
+};
+
+/**
+ * Fetch ALL transactions for advisor (optimized with batching)
  */
 const fetchAllTransactions = async (advisorId: number): Promise<Transaction[]> => {
   // Return cached data if available for this advisor
   if (transactionsCache.length > 0 && cachedAdvisorId === advisorId) {
+    console.log("Using cached transactions");
     return transactionsCache;
   }
 
@@ -206,6 +298,7 @@ const fetchAllTransactions = async (advisorId: number): Promise<Transaction[]> =
   }
 
   try {
+    console.log("Fetching client list...");
     const clientsUrl = `${API_URL}/referrals/advisor-wise-users/${advisorId}`;
 
     const clientsResponse = await fetch(clientsUrl, {
@@ -230,47 +323,37 @@ const fetchAllTransactions = async (advisorId: number): Promise<Transaction[]> =
     const clientsData = await clientsResponse.json();
 
     let clientIds: number[] = [];
-    
+
     if (Array.isArray(clientsData)) {
-      clientIds = clientsData.map(client => client.id || client.userId);
+      clientIds = clientsData.map((client: ClientData) => client.id || client.userId).filter(Boolean) as number[];
     } else if (clientsData.data && Array.isArray(clientsData.data)) {
-      clientIds = clientsData.data.map((client: any) => client.id || client.userId);
+      clientIds = clientsData.data.map((client: ClientData) => client.id || client.userId).filter(Boolean) as number[];
     } else if (clientsData.users && Array.isArray(clientsData.users)) {
-      clientIds = clientsData.users.map((client: any) => client.id || client.userId);
+      clientIds = clientsData.users.map((client: ClientData) => client.id || client.userId).filter(Boolean) as number[];
     } else if (clientsData.userDetails && Array.isArray(clientsData.userDetails)) {
-      clientIds = clientsData.userDetails.map((client: any) => client.id || client.userId);
+      clientIds = clientsData.userDetails.map((client: ClientData) => client.id || client.userId).filter(Boolean) as number[];
     }
 
     if (clientIds.length === 0) {
+      console.log("No clients found");
       return [];
     }
 
+    console.log(`Found ${clientIds.length} clients. Fetching user data in parallel batches...`);
+
+    // Fetch all user data in parallel batches (15 at a time)
+    const userData = await fetchUserDataInBatches(clientIds, token, 15);
+
+    console.log(`Successfully fetched ${userData.length} user records. Extracting transactions...`);
+
+    // Extract transactions from all users
     let allTransactions: Transaction[] = [];
+    userData.forEach(data => {
+      const userTransactions = extractTransactionsFromUserData(data as UserTransactionData);
+      allTransactions = allTransactions.concat(userTransactions);
+    });
 
-    for (const clientId of clientIds) {
-      try {
-        const userUrl = `${API_URL}/referrals/view-user/${clientId}`;
-        
-        const userResponse = await fetch(userUrl, {
-          method: "GET",
-          headers: {
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (!userResponse.ok) {
-          continue;
-        }
-
-        const userData = await userResponse.json();
-        const userTransactions = extractTransactionsFromUserData(userData);
-        allTransactions = allTransactions.concat(userTransactions);
-      } catch (err) {
-        console.error(`Error fetching user ${clientId}:`, err);
-        continue;
-      }
-    }
+    console.log(`Extracted ${allTransactions.length} total transactions`);
 
     // Sort by date (most recent first)
     allTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -280,8 +363,8 @@ const fetchAllTransactions = async (advisorId: number): Promise<Transaction[]> =
     cachedAdvisorId = advisorId;
 
     return allTransactions;
-  } catch (err) {
-    console.error("Error fetching transactions:", err);
+  } catch (error) {
+    console.error("Error fetching transactions:", error);
     return [];
   }
 };
@@ -303,7 +386,7 @@ export const getTransactions = async (params: FetchTransactionsParams): Promise<
       };
     }
 
-    // Step 1: Filter by appType (client-side, like client service)
+    // Step 1: Filter by appType (client-side)
     let filteredByApp = allTransactions;
     if (params.appType && params.appType.trim() !== "") {
       const appTypeLower = params.appType.toLowerCase();
@@ -334,11 +417,11 @@ export const getTransactions = async (params: FetchTransactionsParams): Promise<
       totalTransactions: totalTransactions,
       limit: limit,
     };
-  } catch (err) {
-    console.error("Error in getTransactions:", err);
+  } catch (error) {
+    console.error("Error in getTransactions:", error);
     return { 
       transactions: [], 
-      error: err instanceof Error ? err.message : "Error fetching data",
+      error: error instanceof Error ? error.message : "Error fetching data",
       totalTransactions: 0,
       limit: 10,
     };
@@ -351,4 +434,5 @@ export const getTransactions = async (params: FetchTransactionsParams): Promise<
 export const clearTransactionsCache = () => {
   transactionsCache = [];
   cachedAdvisorId = null;
+  console.log("Transactions cache cleared");
 };

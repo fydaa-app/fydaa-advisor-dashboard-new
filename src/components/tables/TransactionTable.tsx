@@ -32,7 +32,7 @@ const formatCurrency = (value: number): string =>
   }).format(value);
 
 
-const getAppBadgeColor = (app: string | undefined): string => {
+const getAppBadgeColor = (app: string | undefined) => {
   const appLower = (app || "").toLowerCase();
   
   if (appLower.includes("savestment")) return "info";
@@ -110,7 +110,7 @@ export default function TransactionTable({ transactions, error }: TransactionTab
                       {formatCurrency(transaction.orderAmount)}
                     </TableCell>
                     <TableCell className="px-4 py-3 text-start text-theme-sm dark:text-gray-400">
-                      <Badge color={getAppBadgeColor(transaction.fromApp) as any}>
+                      <Badge color={getAppBadgeColor(transaction.fromApp)}>
                         {transaction.fromApp || "Unknown"}
                       </Badge>
                     </TableCell>

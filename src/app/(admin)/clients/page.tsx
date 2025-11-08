@@ -168,7 +168,7 @@ export default function ClientsPage() {
             <>
               <AdvisorClientsTable rows={currentPageClients} error={error} />
 
-              <div className="mt-4 flex justify-end">
+              <div className="mt-4 flex justify-start">
                 <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
               </div>
             </>
