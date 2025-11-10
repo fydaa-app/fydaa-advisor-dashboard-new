@@ -7,7 +7,6 @@ import TodaySaleWrapperMf from "@/components/ecommerce/TodaySaleWrapperMf";
 import InvestmentGoalsDistribution from "@/components/ecommerce/InvestmentGoalsDistribution";
 import PortfolioDistribution from "@/components/ecommerce/PortfolioDistribution";
 import AumTrendChart from "@/components/ecommerce/AumTrendChart";
-import SipTrendChart from "@/components/ecommerce/SipTrendChart";
 
 export default function Ecommerce() {
   const { appType } = useGlobalContext();
@@ -24,9 +23,9 @@ export default function Ecommerce() {
           {appType === "Fydaa" ? <InvestmentGoalsDistribution /> : <PortfolioDistribution />}
         </div>
 
-        {/* Right Chart - Trend (SIP or AUM) */}
+        {/* Right Chart - AUM Trend (Universal for both app types) */}
         <div className="col-span-12 xl:col-span-6">
-          {appType === "Fydaa" ? <SipTrendChart /> : <AumTrendChart />}
+          <AumTrendChart />
         </div>
       </div>
     </div>
