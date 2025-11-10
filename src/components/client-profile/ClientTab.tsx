@@ -149,10 +149,10 @@ export default function ClientTab({ clientData }: ClientTabProps) {
               </div>
 
               {/* Referral Information */}
-              {referralDetails && (
-                <div className="mt-6">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Referral Information</h3>
-                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Referral Information</h3>
+                <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                  {referralDetails ? (
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <p className="text-sm text-gray-900 dark:text-gray-400">Referred By</p>
@@ -167,9 +167,13 @@ export default function ClientTab({ clientData }: ClientTabProps) {
                         <p className="text-theme-sm text-gray-500">{userDetails.referralCode}</p>
                       </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="flex items-center justify-center py-4">
+                      <Badge color="error">Not Mapped</Badge>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
           </div>
         </div>
