@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { SalesIcon, NewCustomerIcon, OrderIcon } from "@/icons";
+import { SalesIcon, NewCustomerIcon, DiscIcon } from "@/icons";
 
 interface DataProps {
   totalClients: number;
@@ -94,7 +94,7 @@ const TodaySale = ({ data, loading, appType }: TodaySaleProps) => {
           {/* Card 3: Active Portfolios / Active SIPs */}
           <div className="col-span-4 shrink-0 w-[260px] xl:w-auto xl:flex-1">
             <div className="box-total-sales h-full">
-              <OrderIcon />
+              <DiscIcon />
               <h2 className="numbers-sale text-gray-900 dark:text-white">
                 {formatNumber(data.activePortfoliosOrSips)}
               </h2>

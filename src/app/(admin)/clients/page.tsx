@@ -9,7 +9,6 @@ import { useGlobalContext } from "@/context/GlobalState";
 import { useAuth } from "@/context/AuthContext";
 import { clientService } from "@/services";
 
-
 export default function ClientsPage() {
   const [clients, setClients] = useState<AdvisorClientRow[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -17,13 +16,12 @@ export default function ClientsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
-  // Get the logged-in advisor's ID
   const { user } = useAuth();
-  const { selectedEmployee, appType } = useGlobalContext();
+  const { appType, selectedOption, customDates } = useGlobalContext();
   const inputRef = useRef<HTMLInputElement>(null);
   const pageSize = 10;
-
 
   const fetchClients = useCallback(async () => {
     console.log(
@@ -31,92 +29,97 @@ export default function ClientsPage() {
       user?.id,
       "app type:",
       appType,
-      "search:",
-      searchQuery
+      "timeframe:",
+      selectedOption,
+      "page:",
+      page
     );
 
-    // Check if advisor ID is available
     if (!user?.id) {
       console.log("No logged-in user, clearing state");
       setClients([]);
       setTotalPages(1);
+      setTotal(0);
       setError(null);
       return;
     }
 
     setIsLoading(true);
     try {
-      // Pass the ADVISOR ID (from auth), not selectedEmployee
-      const users = await clientService.fetchAdvisorClients(
-        user.id,
-        appType
-      );
-      console.log("Fetched users:", users);
+      const normalizedAppType = appType?.toLowerCase() === 'savestment' 
+        ? 'savestment' 
+        : appType?.toLowerCase() === 'fydaa' 
+        ? 'fydaa' 
+        : undefined;
 
-      // Then filter by selectedEmployee (specific client) if one is chosen
-      let filteredByEmployee = users;
-      if (selectedEmployee) {
-        filteredByEmployee = users.filter(
-          (u) => u.id.toString() === selectedEmployee
-        );
-        console.log("Filtered by employee:", filteredByEmployee);
-      }
+      // ✅ Use selectedOption from global context
+      const timeframeValue = selectedOption as 'daily' | 'weekly' | 'monthly' | 'yearly' | 'till_date' | 'custom' | undefined;
+
+      const response = await clientService.fetchAdvisorClients(user.id, {
+        appType: normalizedAppType,
+        page: searchQuery ? 1 : page, // Always page 1 when searching
+        limit: searchQuery ? 1000 : pageSize, // Fetch more records when searching
+        timeframe: timeframeValue,
+        startDate: selectedOption === 'custom' ? customDates.start : undefined,
+        endDate: selectedOption === 'custom' ? customDates.end : undefined,
+      });
+
+      console.log("Fetched response:", response);
+
+      const mappedClients = response.clients.map((u) => ({
+        id: u.id,
+        firstName: u.firstName ?? "",
+        lastName: u.lastName ?? "",
+        email: u.email ?? "",
+        mobileNumber: u.mobileNumber ?? "",
+        app: u.fromApp ?? "Unknown",
+      }));
 
       // Apply search filter
-      const filteredUsers = filteredByEmployee.filter((client) => {
-        const matches =
-          (client.firstName ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (client.lastName ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-          client.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (client.kycStatus ?? "unknown").toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (client.accountStatus ?? "unknown").toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (client.fromApp ?? "unknown").toLowerCase().includes(searchQuery.toLowerCase());
-        if (!matches) console.log("Filtered out client:", client);
-        return matches;
-      });
-      console.log("Final filtered users:", filteredUsers);
+      let filteredUsers = mappedClients;
+      if (searchQuery) {
+        filteredUsers = mappedClients.filter((client) => {
+          const matches =
+            client.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            client.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            client.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            client.mobileNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            client.app.toLowerCase().includes(searchQuery.toLowerCase());
+          return matches;
+        });
+        
+        // When searching, paginate filtered results client-side
+        const startIndex = (page - 1) * pageSize;
+        const endIndex = startIndex + pageSize;
+        setClients(filteredUsers.slice(startIndex, endIndex));
+        setTotalPages(Math.ceil(filteredUsers.length / pageSize));
+        setTotal(filteredUsers.length);
+      } else {
+        setClients(mappedClients);
+        setTotalPages(response.pagination.totalPages);
+        setTotal(response.pagination.total);
+      }
 
-      setClients(
-        filteredUsers.map((u) => ({
-          id: u.id,
-          firstName: u.firstName ?? "",
-          lastName: u.lastName ?? "",
-          email: u.email,
-          kyc: u.kycStatus ?? "Unknown",
-          status: u.accountStatus ?? "Unknown",
-          app: u.fromApp ?? "Unknown",
-          appts: null,
-        }))
-      );
-
-      setTotalPages(Math.ceil(filteredUsers.length / pageSize));
-      setPage(1);
       setError(null);
     } catch (e) {
       console.error("Error fetching clients:", e);
       setError("Failed to load clients");
+      setClients([]);
+      setTotalPages(1);
+      setTotal(0);
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, appType, selectedEmployee, searchQuery]);
-
+  }, [user?.id, appType, selectedOption, customDates, page, searchQuery]);
 
   useEffect(() => {
     fetchClients();
   }, [fetchClients]);
 
-
+  // Reset to page 1 when search query, appType, or timeframe changes
   useEffect(() => {
     setPage(1);
-  }, [searchQuery]);
-
-
-  const currentPageClients = clients.slice(
-    (page - 1) * pageSize,
-    page * pageSize
-  );
-
-  console.log("Current page clients count:", currentPageClients.length);
+  }, [searchQuery, appType, selectedOption]);
 
   // Keyboard shortcut "Cmd/Ctrl + K" focuses search input
   useEffect(() => {
@@ -136,7 +139,7 @@ export default function ClientsPage() {
 
       <div className="space-y-6">
         <ComponentCard title="Clients List">
-          <form onSubmit={(e) => { e.preventDefault(); fetchClients(); }} className="mb-4">
+          <form onSubmit={(e) => { e.preventDefault(); }} className="mb-4">
             <div className="relative search-box">
               <span className="absolute -translate-y-1/2 left-4 top-1/2 pointer-events-none">
                 <svg className="fill-gray-500 dark:fill-gray-400" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -154,6 +157,13 @@ export default function ClientsPage() {
             </div>
           </form>
 
+          {!isLoading && total > 0 && (
+            <div className="mb-3 text-sm text-gray-600 dark:text-gray-400">
+              Showing {clients.length} of {total} total clients
+              {searchQuery && ` (filtered by "${searchQuery}")`}
+            </div>
+          )}
+
           {error && <p className="mb-4 text-red-600 font-semibold">{error}</p>}
 
           {isLoading ? (
@@ -162,11 +172,11 @@ export default function ClientsPage() {
             </div>
           ) : clients.length === 0 ? (
             <div className="m-4">
-              <p>No clients found.</p>
+              <p>No clients found{searchQuery ? ` matching "${searchQuery}"` : ''}.</p>
             </div>
           ) : (
             <>
-              <AdvisorClientsTable rows={currentPageClients} error={error} />
+              <AdvisorClientsTable rows={clients} error={error} />
 
               <div className="mt-4 flex justify-start">
                 <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />

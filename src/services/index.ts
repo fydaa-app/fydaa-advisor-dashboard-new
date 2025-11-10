@@ -66,3 +66,10 @@ export {
   clientProfileService,
   type ClientProfileData,
 } from './clientProfileService';
+
+// Client Document services
+export {
+  clientDocumentService,
+  type EmailReportRequest,
+  type EmailReportResponse,
+} from './clientDocumentService'

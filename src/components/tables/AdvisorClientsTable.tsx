@@ -10,9 +10,7 @@ export interface AdvisorClientRow {
   firstName: string;
   lastName: string;
   email: string;
-  kyc?: string | null;
-  status?: string | null;
-  appts?: number | null;
+  mobileNumber: string;
   app?: string | null;
 }
 
@@ -25,19 +23,16 @@ export default function AdvisorClientsTable({ rows, error }: Props) {
   const router = useRouter();
 
   const handleViewClient = (clientId: number) => {
-    // Store client ID in sessionStorage
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('selectedClientId', clientId.toString());
     }
-    
-    // Navigate to client profile without ID in URL
     router.push('/clients/profile');
   };
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
       <div className="max-w-full overflow-x-auto">
-        <div className="min-w-[900px]">
+        <div className="min-w-[800px]">
           {error && <div className="m-4"><p style={{ color: "red" }}>{error}</p></div>}
           {!error && rows.length > 0 ? (
             <Table>
@@ -46,31 +41,26 @@ export default function AdvisorClientsTable({ rows, error }: Props) {
                   <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">First Name</TableCell>
                   <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">Last Name</TableCell>
                   <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">Email</TableCell>
-                  <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">KYC Status</TableCell>
-                  <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">Account Status</TableCell>
+                  <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">Mobile Number</TableCell>
                   <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">App</TableCell>
                   <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">Action</TableCell>
                 </TableRow>
               </TableHeader>
               <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
                 {rows.map((r, i) => (
-                  <TableRow key={`${r.email}-${i}`}>
+                  <TableRow key={`${r.id}-${i}`}>
                     <TableCell className="px-5 py-4 sm:px-6 text-start">
-                      <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">{r.firstName || ""}</span>
+                      <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">{r.firstName || "—"}</span>
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">{r.lastName || ""}</TableCell>
-                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">{r.email}</TableCell>
+                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">{r.lastName || "—"}</TableCell>
+                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">{r.email || "—"}</TableCell>
+                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">{r.mobileNumber || "—"}</TableCell>
                     <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      <Badge color={r.kyc === "Approved" ? "success" : r.kyc === "Pending" ? "warning" : "error"}>
-                        {r.kyc ?? "Unknown"}
+                      <Badge color={r.app?.toLowerCase() === "fydaa" ? "primary" : r.app?.toLowerCase() === "savestment" ? "info" : "light"}>
+                        {r.app ?? "Unknown"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      <Badge color={r.status === 'Active' ? 'success' : 'error'}>{r.status ?? "Unknown"}</Badge>
-                    </TableCell>
-                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      {r.app ?? "Unknown"}
-                    </TableCell>
+
                     <TableCell className="px-4 py-3 text-start">
                       <button
                         onClick={() => handleViewClient(r.id)}

@@ -9,7 +9,7 @@ import {
   TableRow,
 } from "../ui/table";
 import Badge from "../ui/badge/Badge";
-import { ClientProfileData } from "@/services";
+import { ClientProfileData, clientDocumentService } from "@/services";
 
 interface ClientTabProps {
   clientData: ClientProfileData;
@@ -17,6 +17,8 @@ interface ClientTabProps {
 
 export default function ClientTab({ clientData }: ClientTabProps) {
   const [activeTab, setActiveTab] = useState<string>('Portfolio');
+  const [downloading, setDownloading] = useState<string | null>(null);
+  const [sendingEmail, setSendingEmail] = useState<string | null>(null);
   
   const userDetails = clientData.userDetails;
   const portfolioDetails = clientData.portfolioDetails;
@@ -45,6 +47,64 @@ export default function ClientTab({ clientData }: ClientTabProps) {
   };
 
   const allStocks = getAllStocks();
+
+  // Download portfolio report PDF
+  const downloadPortfolioReport = async () => {
+    try {
+      setDownloading('portfolioReport');
+      await clientDocumentService.downloadPortfolioPdf(userDetails.id);
+      alert('Portfolio report PDF downloaded successfully!');
+    } catch (error) {
+      console.error('Error downloading portfolio report:', error);
+      alert(`Failed to download portfolio report PDF: ${error}`);
+    } finally {
+      setDownloading(null);
+    }
+  };
+
+  // Send portfolio report via email
+  const sendPortfolioReportEmail = async () => {
+    try {
+      setSendingEmail('portfolioEmail');
+      const result = await clientDocumentService.sendPortfolioEmail(userDetails.id, false);
+      if (result.success) {
+        alert('Portfolio report email sent successfully!');
+      } else {
+        throw new Error(result.message || 'Failed to send portfolio report email');
+      }
+    } catch (error) {
+      console.error('Error sending portfolio report email:', error);
+      alert(`Failed to send portfolio report email: ${error}`);
+    } finally {
+      setSendingEmail(null);
+    }
+  };
+
+  // Download risk profile PDF
+  const downloadRiskProfile = async () => {
+    try {
+      setDownloading('riskProfile');
+      await clientDocumentService.downloadRiskProfilePdf(userDetails.id);
+    } catch (error) {
+      console.error('Error downloading risk profile:', error);
+      alert('Failed to download Risk Profile PDF. Please try again.');
+    } finally {
+      setDownloading(null);
+    }
+  };
+
+  // Download e-sign agreement PDF
+  const downloadEsignAgreement = async () => {
+    try {
+      setDownloading('esignAgreement');
+      await clientDocumentService.downloadEsignAgreement(userDetails.id);
+    } catch (error) {
+      console.error('Error downloading esign agreement:', error);
+      alert('Failed to download Esign Agreement PDF. Please try again.');
+    } finally {
+      setDownloading(null);
+    }
+  };
 
   return (
     <div className="grid grid-cols-12 gap-4 md:gap-6">
@@ -87,28 +147,29 @@ export default function ClientTab({ clientData }: ClientTabProps) {
                   PAN Status: {userDetails.panStatus}
                 </p>
               </div>
+
               {/* Referral Information */}
-                {referralDetails && (
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Referral Information</h3>
-                    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-sm text-gray-900 dark:text-gray-400">Referred By</p>
-                          <p className="text-theme-sm text-gray-500">{referralDetails.firstName} {referralDetails.lastName}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-900 dark:text-gray-400">Contact</p>
-                          <p className="text-theme-sm text-gray-500">{referralDetails.callingCode} {referralDetails.mobileNumber}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-900 dark:text-gray-400">Referral Code</p>
-                          <p className="text-theme-sm text-gray-500">{userDetails.referralCode}</p>
-                        </div>
+              {referralDetails && (
+                <div className="mt-6">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Referral Information</h3>
+                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-900 dark:text-gray-400">Referred By</p>
+                        <p className="text-theme-sm text-gray-500">{referralDetails.firstName} {referralDetails.lastName}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-900 dark:text-gray-400">Contact</p>
+                        <p className="text-theme-sm text-gray-500">{referralDetails.callingCode} {referralDetails.mobileNumber}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-900 dark:text-gray-400">Referral Code</p>
+                        <p className="text-theme-sm text-gray-500">{userDetails.referralCode}</p>
                       </div>
                     </div>
                   </div>
-                )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -119,7 +180,7 @@ export default function ClientTab({ clientData }: ClientTabProps) {
         <div className="flex flex-col gap-5">
           {/* Tabs Navigation */}
           <div className="flex gap-2 overflow-x-auto">
-            {['Portfolio', 'Transaction', 'Stock', 'Profile'].map((tab) => (
+            {['Portfolio', 'Transaction', 'Stock', 'Profile', 'Reports'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -141,53 +202,109 @@ export default function ClientTab({ clientData }: ClientTabProps) {
             {/* Portfolio Tab */}
             {activeTab === 'Portfolio' && (
               <div className="p-4">
-
                 {portfolioDetails && portfolioDetails.length > 0 ? (
-                  portfolioDetails.map((portfolio) => (
-                    <div key={portfolio.portfolioId} className="mb-6">
-                      <div className="border-b border-gray-100 dark:border-white/[0.05] pb-4 mb-6">
-                        <h4 className="text-md font-medium dark:text-gray-400">{portfolio.portfolioName}</h4>
-                      </div>
-                      
-                      <div className="mt-4 grid grid-cols-2 gap-4">
-                        <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Invested Amount</p>
-                          <p className="font-medium dark:text-gray-400">{formatCurrency(portfolio.totalInvestedValue)}</p>
-                        </div>
-                        <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Current Value</p>
-                          <p className="font-medium dark:text-gray-400">{formatCurrency(portfolio.currentValue)}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="mt-4 grid grid-cols-2 gap-4">
-                        <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Realised Profit</p>
-                          <p className="font-medium dark:text-gray-400">{formatCurrency(portfolio.realizedReturn)}</p>
-                        </div>
-                        <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Unrealised Profit</p>
-                          <p className="font-medium dark:text-gray-400">{formatCurrency(portfolio.unrealizedReturn)}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="mt-4 grid grid-cols-2 gap-4">
-                        <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Absolute Return</p>
-                          <p className="font-medium dark:text-gray-400">
-                            {portfolio.totalInvestedValue > 0 
-                              ? (((portfolio.currentValue - portfolio.totalInvestedValue) / portfolio.totalInvestedValue) * 100).toFixed(2)
-                              : '0.00'
-                            }%
-                          </p>
-                        </div>
-                        <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Total Profit</p>
-                          <p className="font-medium dark:text-gray-400">{formatCurrency(portfolio.totalProfit)}</p>
+                  <>
+                    {/* Portfolio Overview Section with Download/Email Buttons */}
+                    <div className="border-b border-gray-100 dark:border-white/[0.05] pb-4 mb-6">
+                      <div className="flex justify-between items-center">
+                        <h3 className="text-lg font-semibold dark:text-gray-400">Portfolio Overview</h3>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={downloadPortfolioReport}
+                            disabled={downloading === 'portfolioReport'}
+                            className="px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white text-sm rounded-lg transition-colors flex items-center gap-2"
+                            title="Download Portfolio Report PDF"
+                          >
+                            {downloading === 'portfolioReport' ? (
+                              <>
+                                <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                Downloading...
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                Download PDF
+                              </>
+                            )}
+                          </button>
+
+                          <button
+                            onClick={sendPortfolioReportEmail}
+                            disabled={sendingEmail === 'portfolioEmail'}
+                            className="px-3 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed text-white text-sm rounded-lg transition-colors flex items-center gap-2"
+                            title="Send Portfolio Report via Email"
+                          >
+                            {sendingEmail === 'portfolioEmail' ? (
+                              <>
+                                <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                Sending...
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                </svg>
+                                Email Report
+                              </>
+                            )}
+                          </button>
                         </div>
                       </div>
                     </div>
-                  ))
+
+                    {/* Portfolio Details */}
+                    {portfolioDetails.map((portfolio) => (
+                      <div key={portfolio.portfolioId} className="mb-6">
+                        <div className="border-b border-gray-100 dark:border-white/[0.05] pb-4 mb-6">
+                          <h4 className="text-md font-medium dark:text-gray-400">{portfolio.portfolioName}</h4>
+                        </div>
+                        
+                        <div className="mt-4 grid grid-cols-2 gap-4">
+                          <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Invested Amount</p>
+                            <p className="font-medium dark:text-gray-400">{formatCurrency(portfolio.totalInvestedValue)}</p>
+                          </div>
+                          <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Current Value</p>
+                            <p className="font-medium dark:text-gray-400">{formatCurrency(portfolio.currentValue)}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-4 grid grid-cols-2 gap-4">
+                          <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Realised Profit</p>
+                            <p className="font-medium dark:text-gray-400">{formatCurrency(portfolio.realizedReturn)}</p>
+                          </div>
+                          <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Unrealised Profit</p>
+                            <p className="font-medium dark:text-gray-400">{formatCurrency(portfolio.unrealizedReturn)}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-4 grid grid-cols-2 gap-4">
+                          <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Absolute Return</p>
+                            <p className="font-medium dark:text-gray-400">
+                              {portfolio.totalInvestedValue > 0 
+                                ? (((portfolio.currentValue - portfolio.totalInvestedValue) / portfolio.totalInvestedValue) * 100).toFixed(2)
+                                : '0.00'
+                              }%
+                            </p>
+                          </div>
+                          <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Total Profit</p>
+                            <p className="font-medium dark:text-gray-400">{formatCurrency(portfolio.totalProfit)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </>
                 ) : (
                   <div className="flex justify-center items-center py-12">
                     <div className="text-center">
@@ -355,8 +472,6 @@ export default function ClientTab({ clientData }: ClientTabProps) {
                   </div>
                 )}
 
-                
-
                 {/* Advisor Details */}
                 {advisor && (
                   <div>
@@ -455,6 +570,92 @@ export default function ClientTab({ clientData }: ClientTabProps) {
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Reports Tab */}
+            {activeTab === 'Reports' && (
+              <div className="p-6">
+                <div className="border-b border-gray-100 dark:border-white/[0.05] pb-4 mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Download Reports</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Download user risk profile and esign agreement documents
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Risk Profile Card */}
+                  <div className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+                    <div className="flex items-center mb-4">
+                      <div className="p-3 bg-blue-100 dark:bg-blue-900/50 rounded-lg mr-4">
+                        <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Risk Profile</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">User investment risk assessment</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={downloadRiskProfile}
+                      disabled={downloading === 'riskProfile'}
+                      className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+                    >
+                      {downloading === 'riskProfile' ? (
+                        <>
+                          <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          Downloading...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          Download Risk Profile
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* E-sign Agreement Card */}
+                  <div className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border border-green-200 dark:border-green-800">
+                    <div className="flex items-center mb-4">
+                      <div className="p-3 bg-green-100 dark:bg-green-900/50 rounded-lg mr-4">
+                        <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Esign Agreement</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">Digital signature agreement document</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={downloadEsignAgreement}
+                      disabled={downloading === 'esignAgreement'}
+                      className="w-full px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+                    >
+                      {downloading === 'esignAgreement' ? (
+                        <>
+                          <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          Downloading...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          Download Esign Agreement
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
 

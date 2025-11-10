@@ -13,8 +13,6 @@ import { Modal } from "@/components/ui/modal";
 import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
 import Button from "@/components/ui/button/Button";
-// import { useAuth } from "@/context/AuthContext";
-// import { useAdvisorClients } from "@/hooks/useAdvisorClients";
 
 const AppHeader: React.FC = () => {
   const { isOpen, openModal, closeModal } = useModal();  
@@ -38,12 +36,6 @@ const AppHeader: React.FC = () => {
     appType,
     setAppType
   } = useGlobalContext();
-
-  // Pass appType to the hook to filter clients
-  // const { clientOptions, loading: isLoadingClients } = useAdvisorClients(
-  //   user?.id || null,
-  //   appType
-  // );
 
   const handleToggle = () => {
     if (window.innerWidth >= 991) {
@@ -81,17 +73,18 @@ const AppHeader: React.FC = () => {
       } else {
         setCustomDates({ start: "", end: "" });
       }
-    }    
+    } else {
+      setSelectedOption("");
+    }
   };
-
-  // const handleClientChange = (option: { value: string; label: string } | null) => {
-  //   setSelectedEmployee(option?.value || "");
-  // };
 
   const handleAppTypeChange = (option: { value: string; label: string } | null) => {
     if (option) {
       setAppType(option.value);
       // Reset selected client when app type changes
+      setSelectedEmployee("");
+    } else {
+      setAppType("");
       setSelectedEmployee("");
     }
   };
@@ -101,11 +94,10 @@ const AppHeader: React.FC = () => {
     
     if (validateDates(startDate, endDate)) {      
       setCustomDates({ start: startDate, end: endDate });
+      closeModal();
     } else {
       alert("Invalid date range: Start date must be before end date");
     }
-    
-    closeModal();
   };
 
   useEffect(() => {
@@ -228,23 +220,10 @@ const AppHeader: React.FC = () => {
             </span>
           </div>
 
-          {/* <div className="relative w-48">
-            <Select 
-              options={appType ? clientOptions : []}
-              placeholder={!appType ? "Select app type first" : isLoadingClients ? "Loading clients..." : "Select Client"}
-              onChange={handleClientChange}
-              value={selectedEmployee || null}
-              className="dark:bg-dark-900"
-            />
-            <span className="absolute text-gray-500 -translate-y-1/2 pointer-events-none right-3 top-1/2 dark:text-gray-400">
-              <ChevronDownIcon/>
-            </span>
-          </div> */}
-
           <div className="relative w-48">
             <Select 
               options={options}
-              placeholder="Select Option"
+              placeholder="Select Timeframe"
               onChange={handleSelectChange}
               value={selectedOption || null}
               className="dark:bg-dark-900"
@@ -281,6 +260,7 @@ const AppHeader: React.FC = () => {
                     type="date" 
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
+                    required
                   />
                 </div>
                 <div>
@@ -289,12 +269,13 @@ const AppHeader: React.FC = () => {
                     type="date" 
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
+                    required
                   />
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
-              <Button size="sm" variant="outline" onClick={closeModal}>
+              <Button size="sm" variant="outline" type="button" onClick={closeModal}>
                 Cancel
               </Button>            
               <Button size="sm" type="submit">Save Dates</Button>

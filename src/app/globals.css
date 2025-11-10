@@ -630,9 +630,9 @@ p.total-sale-text {
 /* 2: Total AUM -> pink */
 .sales-box-row > *:nth-child(2) .box-total-sales,
 .sales-box-row .col-span-4:nth-child(2) .box-total-sales { background: #FFE2E5; }
-/* 3: Active Portfolios (violet icon) -> purple */
+/* 3: Active Portfolios (violet icon) -> green */
 .sales-box-row > *:nth-child(3) .box-total-sales,
-.sales-box-row .col-span-4:nth-child(3) .box-total-sales { background: #F3E8FF; }
+.sales-box-row .col-span-4:nth-child(3) .box-total-sales { background: #DCFCE7; }
 /* 4: Average YTD Performance (green icon) -> green */
 .sales-box-row > *:nth-child(4) .box-total-sales,
 .sales-box-row .col-span-4:nth-child(4) .box-total-sales { background: #DCFCE7; }
