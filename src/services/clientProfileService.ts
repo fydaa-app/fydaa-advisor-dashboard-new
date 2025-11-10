@@ -22,6 +22,8 @@ export interface ClientProfileData {
     state: string;
     city: string;
     pincode: string;
+    referredBy: string | null;
+    referralCode: string;
     address: {
       addressLine1: string;
       addressLine2: string;
@@ -42,6 +44,25 @@ export interface ClientProfileData {
     realizedReturn: number;
     totalProfit: number;
     totalInvestedValue: number;
+    stocks: Array<{
+      portfolioName: string;
+      portfolioId: number;
+      stockName: string;
+      capType: string;
+      stockType: string;
+      sector: number;
+      ticker: string;
+      ltp: string;
+      balanceQty: number;
+      totalQty: number;
+      averagePrice: number;
+      unrealizedReturn: number;
+      realizedReturn: number;
+      totalProfit: number;
+      investedValue: number;
+      currentValue: number;
+      stockId: number;
+    }>;
   }>;
   userTransactionDetails: Array<{
     transactionId: string;
@@ -51,17 +72,43 @@ export interface ClientProfileData {
     totalTradeQty: number;
     createdAt: string;
   }>;
+  stockOrders: Array<{
+    stockId: number;
+    buyQuantity: number;
+    sellQuantity: number;
+    quantityDifference: number;
+    totalValue: number;
+    avgValue: number;
+    netValue: number;
+    "stock.stockName": string;
+    "stock.ticker": string;
+  }>;
+  referralDetails: {
+    firstName: string;
+    lastName: string;
+    callingCode: string;
+    mobileNumber: string;
+  };
   relationshipManager: {
     id: number;
     name: string;
     email: string;
     mobileNumber: string;
+    type: string;
+    photo: string | null;
+    description: string;
   };
   advisor: {
     id: number;
     name: string;
     email: string;
     mobile: string;
+    description: string;
+    age: number;
+    experienceInYears: number;
+    photo: string;
+    attachment1: string;
+    attachment2: string;
   };
 }
 

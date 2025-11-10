@@ -5,13 +5,9 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation"; // Import useRouter for navigation
 import { deleteCookie } from "cookies-next"; // Import deleteCookie to handle cookie deletion
 import { useSidebar } from "../context/SidebarContext";
-import { useAuth } from "../context/AuthContext";
 import {
   GridIcon,
-  PieChartIcon,
-  TableIcon,
   UserCircleIcon,
-  ShoppingCartIcon,
 } from "../icons/index";
 
 type NavItem = {
@@ -31,21 +27,6 @@ const navItems: NavItem[] = [
     icon: <UserCircleIcon />,
     name: "Clients",
     path: "/clients",
-  },
-  {
-    icon: <PieChartIcon />,
-    name: "Portfolios",
-    path: "/portfolios",
-  },
-  {
-    icon: <ShoppingCartIcon />,
-    name: "Transactions",
-    path: "/transaction",
-  },
-  {
-    icon: <TableIcon />,
-    name: "Bank Accounts",
-    path: "/accounts",
   },
   {
     name: "Sign Out",
@@ -74,20 +55,7 @@ const AppSidebar: React.FC = () => {
   const pathname = usePathname();
   const router = useRouter(); // Initialize useRouter for navigation
 
-  const { user, isLoading } = useAuth();
-  // Filter nav items based on role (same logic as designations)
-  const filteredNavItems = React.useMemo(() => {
-    if (isLoading) {
-      return navItems; // Show all while loading
-    }
-    return navItems.filter((item) => {
-      if (item.name === "Payouts") {
-        // Only show for admin (role: 0) and partner (role: 5)
-        return user?.role === '0' || user?.role === '5';
-      }
-      return true;
-    });
-  }, [isLoading, user?.role]);
+  const filteredNavItems = navItems;
   
 
   const handleSignOut = () => {

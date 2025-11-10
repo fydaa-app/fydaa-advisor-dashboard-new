@@ -8,15 +8,15 @@ export {
   type ApiResponse as AuthApiResponse,
 } from './authService';
 
-
 // Dashboard services
 export {
+  getAdvisorCardsData,
   getCardsData,
   getCardsDataMf,
+  type AdvisorCardsDataResponse,
   type CardData,
   type TodaySalesData,
 } from './dashboardService';
-
 
 // Transaction services
 export {
@@ -27,7 +27,6 @@ export {
   type FetchTransactionsResponse,
 } from './transactionService';
 
-
 // Portfolio services
 export {
   getPortfolios,
@@ -36,7 +35,6 @@ export {
   type FetchPortfoliosParams,
   type FetchPortfoliosResponse,
 } from './portfolioService';
-
 
 // Admin services
 export {
@@ -50,7 +48,6 @@ export {
   type ApiResponse as AdminApiResponse,
 } from './adminService';
 
-
 // Advisor services
 export {
   advisorService,
@@ -58,13 +55,11 @@ export {
   type ApiResponse as AdvisorApiResponse,
 } from './advisorService';
 
-
 // Client services
 export {
   clientService,
   type ClientData,
 } from './clientService';
-
 
 // Client Profile services
 export {

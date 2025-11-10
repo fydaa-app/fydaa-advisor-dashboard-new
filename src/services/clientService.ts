@@ -33,6 +33,8 @@ interface AdvisorWiseUsersResponse {
     lastName?: string | null;
     email: string;
     mobileNumber: string;
+    fromApp?: string;
+    type?: string;
   }>;
 }
 
@@ -59,22 +61,17 @@ const getHeaders = (): Record<string, string> => {
   return headers;
 };
 
-/**
- * Fetch client details in parallel batches
- */
-const fetchClientDetailsInBatches = async (
+// ✅ OPTIMIZED: Fire all requests concurrently
+const fetchClientDetailsParallel = async (
   userList: Array<{ id: number; firstName?: string | null; lastName?: string | null; email: string; mobileNumber: string }>,
-  headers: Record<string, string>,
-  batchSize: number = 15
+  headers: Record<string, string>
 ): Promise<ClientData[]> => {
-  const enrichedClients: ClientData[] = [];
   
-  for (let i = 0; i < userList.length; i += batchSize) {
-    const batch = userList.slice(i, i + batchSize);
-    
-    console.log(`Fetching client details batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(userList.length / batchSize)}...`);
-    
-    const batchPromises = batch.map(async (basicUser) => {
+  console.log(`Fetching details for ${userList.length} clients in parallel...`);
+  
+  // Fire ALL requests at once (not in batches)
+  const allPromises = userList.map(async (basicUser) => {
+    try {
       const detailUrl = `${API_URL}/referrals/view-user/${basicUser.id}`;
       const detailResponse = await fetch(detailUrl, { method: 'GET', headers });
       
@@ -102,29 +99,24 @@ const fetchClientDetailsInBatches = async (
             : 'Unknown',
         accountStatus: userDetails.main_subscription_status === 1 ? 'Active' : 'Inactive',
       };
-    });
-    
-    const batchResults = await Promise.allSettled(batchPromises);
-    
-    batchResults.forEach((result, index) => {
-      if (result.status === 'fulfilled') {
-        enrichedClients.push(result.value);
-      } else {
-        console.error(`Error fetching client ${batch[index].id}:`, result.reason);
-        // Add basic client data as fallback
-        enrichedClients.push({
-          id: batch[index].id,
-          firstName: batch[index].firstName ?? '',
-          lastName: batch[index].lastName ?? '',
-          email: batch[index].email ?? '',
-          mobileNumber: batch[index].mobileNumber ?? '',
-          fromApp: undefined,
-          kycStatus: 'Unknown',
-          accountStatus: 'Unknown',
-        });
-      }
-    });
-  }
+    } catch (error) {
+      console.error(`Error fetching client ${basicUser.id}:`, error);
+      return {
+        id: basicUser.id,
+        firstName: basicUser.firstName ?? '',
+        lastName: basicUser.lastName ?? '',
+        email: basicUser.email ?? '',
+        mobileNumber: basicUser.mobileNumber ?? '',
+        fromApp: undefined,
+        kycStatus: 'Unknown',
+        accountStatus: 'Unknown',
+      };
+    }
+  });
+  
+  // Wait for ALL requests to complete
+  const enrichedClients = await Promise.all(allPromises);
+  console.log(`Successfully enriched ${enrichedClients.length} clients`);
   
   return enrichedClients;
 };
@@ -142,7 +134,6 @@ export const clientService = {
     const headers = getHeaders();
 
     console.log("Fetching client list...");
-    // Fetch initial user list
     const listUrl = `${API_URL}/referrals/advisor-wise-users/${advisorId}`;
     const listResponse = await fetch(listUrl, { method: 'POST', headers });
     if (!listResponse.ok) {
@@ -151,14 +142,11 @@ export const clientService = {
     const listResult: AdvisorWiseUsersResponse = await listResponse.json();
     const userList = listResult.data || [];
 
-    console.log(`Found ${userList.length} clients. Fetching details in parallel batches...`);
+    console.log(`Found ${userList.length} clients. Fetching details in parallel...`);
 
-    // Fetch detailed user info in parallel batches (15 at a time)
-    const enrichedClients = await fetchClientDetailsInBatches(userList, headers, 15);
+    // ✅ Use parallel fetching instead of sequential batches
+    const enrichedClients = await fetchClientDetailsParallel(userList, headers);
 
-    console.log(`Successfully enriched ${enrichedClients.length} clients`);
-
-    // Filter according to appType
     let filteredClients = enrichedClients;
     if (appType) {
       const lowerAppType = appType.toLowerCase();

@@ -13,13 +13,11 @@ import { Modal } from "@/components/ui/modal";
 import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
 import Button from "@/components/ui/button/Button";
-import { useAuth } from "@/context/AuthContext";
-import { useAdvisorClients } from "@/hooks/useAdvisorClients";
+// import { useAuth } from "@/context/AuthContext";
+// import { useAdvisorClients } from "@/hooks/useAdvisorClients";
 
 const AppHeader: React.FC = () => {
-  const { isOpen, openModal, closeModal } = useModal();
-  const { user } = useAuth();
-  
+  const { isOpen, openModal, closeModal } = useModal();  
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
@@ -36,17 +34,16 @@ const AppHeader: React.FC = () => {
     customDates, 
     setCustomDates, 
     validateDates,
-    selectedEmployee,
     setSelectedEmployee,
     appType,
     setAppType
   } = useGlobalContext();
 
   // Pass appType to the hook to filter clients
-  const { clientOptions, loading: isLoadingClients } = useAdvisorClients(
-    user?.id || null,
-    appType
-  );
+  // const { clientOptions, loading: isLoadingClients } = useAdvisorClients(
+  //   user?.id || null,
+  //   appType
+  // );
 
   const handleToggle = () => {
     if (window.innerWidth >= 991) {
@@ -87,9 +84,9 @@ const AppHeader: React.FC = () => {
     }    
   };
 
-  const handleClientChange = (option: { value: string; label: string } | null) => {
-    setSelectedEmployee(option?.value || "");
-  };
+  // const handleClientChange = (option: { value: string; label: string } | null) => {
+  //   setSelectedEmployee(option?.value || "");
+  // };
 
   const handleAppTypeChange = (option: { value: string; label: string } | null) => {
     if (option) {
@@ -231,7 +228,7 @@ const AppHeader: React.FC = () => {
             </span>
           </div>
 
-          <div className="relative w-48">
+          {/* <div className="relative w-48">
             <Select 
               options={appType ? clientOptions : []}
               placeholder={!appType ? "Select app type first" : isLoadingClients ? "Loading clients..." : "Select Client"}
@@ -242,7 +239,7 @@ const AppHeader: React.FC = () => {
             <span className="absolute text-gray-500 -translate-y-1/2 pointer-events-none right-3 top-1/2 dark:text-gray-400">
               <ChevronDownIcon/>
             </span>
-          </div>
+          </div> */}
 
           <div className="relative w-48">
             <Select 
