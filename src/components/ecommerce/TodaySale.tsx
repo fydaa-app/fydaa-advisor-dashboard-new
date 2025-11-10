@@ -71,7 +71,7 @@ const TodaySale = ({ data, loading, appType }: TodaySaleProps) => {
           <div className="col-span-4 shrink-0 w-[260px] xl:w-auto xl:flex-1">
             <div className="box-total-sales h-full">
               <NewCustomerIcon />
-              <h2 className="numbers-sale text-gray-900 dark:text-white">
+              <h2 className="numbers-sale text-gray-900 ">
                 {formatNumber(data.totalClients)}
               </h2>
               <p className="total-sale-text">Total Active Clients</p>
@@ -83,7 +83,7 @@ const TodaySale = ({ data, loading, appType }: TodaySaleProps) => {
           <div className="col-span-4 shrink-0 w-[260px] xl:w-auto xl:flex-1">
             <div className="box-total-sales h-full">
               <SalesIcon />
-              <h2 className="numbers-sale text-gray-900 dark:text-white">
+              <h2 className="numbers-sale text-gray-900 ">
                 {formatCurrency(data.totalAUM)}
               </h2>
               <p className="total-sale-text">Total AUM</p>
@@ -95,7 +95,7 @@ const TodaySale = ({ data, loading, appType }: TodaySaleProps) => {
           <div className="col-span-4 shrink-0 w-[260px] xl:w-auto xl:flex-1">
             <div className="box-total-sales h-full">
               <DiscIcon />
-              <h2 className="numbers-sale text-gray-900 dark:text-white">
+              <h2 className="numbers-sale text-gray-900 ">
                 {formatNumber(data.activePortfoliosOrSips)}
               </h2>
               <p className="total-sale-text">{thirdCardLabel}</p>
