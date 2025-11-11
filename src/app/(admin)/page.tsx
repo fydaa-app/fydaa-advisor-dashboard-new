@@ -17,14 +17,14 @@ export default function Ecommerce() {
       {appType === "Fydaa" ? <TodaySaleWrapperMf /> : <TodaySaleWrapper />}
 
       {/* Charts Grid */}
-      <div className="grid grid-cols-12 gap-4 md:gap-6">
+      <div className="grid grid-cols-12 gap-4 md:gap-6 auto-rows-fr">
         {/* Left Chart - Distribution (Goals or Portfolio) */}
-        <div className="col-span-12 xl:col-span-6">
+        <div className="col-span-12 xl:col-span-6 [&>*]:h-full">
           {appType === "Fydaa" ? <InvestmentGoalsDistribution /> : <PortfolioDistribution />}
         </div>
 
         {/* Right Chart - AUM Trend (Universal for both app types) */}
-        <div className="col-span-12 xl:col-span-6">
+        <div className="col-span-12 xl:col-span-6 [&>*]:h-full">
           <AumTrendChart />
         </div>
       </div>

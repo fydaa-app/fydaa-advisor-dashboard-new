@@ -73,3 +73,10 @@ export {
   type EmailReportRequest,
   type EmailReportResponse,
 } from './clientDocumentService'
+
+// AUM Trend services
+export {
+  getAumTrendData,
+  type AumTrendDataPoint,
+  type AumTrendResponse,
+} from './aumTrendService';

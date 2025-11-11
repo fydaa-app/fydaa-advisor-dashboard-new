@@ -115,7 +115,7 @@ export default function TrendChart({
         <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">{title}</h3>
       </div>
       <div className="max-w-full">
-        <ReactApexChart options={options} series={seriesData} type={chartType} height={300} />
+        <ReactApexChart options={options} series={seriesData} type={chartType} height={400} />
       </div>
     </div>
   );
