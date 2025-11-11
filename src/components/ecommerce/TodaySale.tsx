@@ -50,7 +50,7 @@ const TodaySale = ({ data, loading, appType }: TodaySaleProps) => {
     new Intl.NumberFormat("en-IN").format(value);
 
   // Determine the label for third card based on app type
-  const thirdCardLabel = appType === "Fydaa" ? "Active SIPs" : "Active Portfolios";
+  const thirdCardLabel = appType === "Fydaa" ? "Invested SIPs" : "Invested Portfolios";
 
   return (
     <div className="grid">
