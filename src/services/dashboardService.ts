@@ -21,7 +21,8 @@ export interface AdvisorCardsDataResponse {
     totalUnrealizedProfit?: number; // Fydaa
     totalRealizedProfit?: number; // Fydaa
     totalProfit?: number; // Fydaa
-    activeSips?: number; // Fydaa
+    investedSips?: number; // Fydaa
+    investedPortfolios?: number; // Savestment
   };
 }
 
@@ -101,15 +102,13 @@ export const getAdvisorCardsData = async (params: FetchCardsParams): Promise<Tod
     let activePortfoliosOrSips = 0;
 
     if (type === 'fydaa') {
-      // For Fydaa: use totalCurrentValue as AUM and activeSips
+      // For Fydaa: use totalCurrentValue as AUM and investedSips
       totalAUM = data.totalCurrentValue || 0;
-      activePortfoliosOrSips = data.activeSips || 0;
+      activePortfoliosOrSips = data.investedSips || 0;
     } else {
-      // For Savestment: use totalInvestment as AUM
-      // Note: Backend doesn't return active portfolios count yet
-      // You may need to add this to backend or use totalNoOfTransactions
+      // For Savestment: use totalInvestment as AUM and investedPortfolios
       totalAUM = data.totalInvestment || 0;
-      activePortfoliosOrSips = 0; // Set to 0 for now or update backend to return this
+      activePortfoliosOrSips = data.investedPortfolios || 0;
     }
 
     return {
