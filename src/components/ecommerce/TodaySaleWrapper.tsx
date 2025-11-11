@@ -2,21 +2,32 @@
 import React, { useState, useEffect } from "react";
 import TodaySale from "@/components/ecommerce/TodaySale";
 import { useGlobalContext } from "@/context/GlobalState";
+import { useAuth } from "@/context/AuthContext";
 import { getAdvisorCardsData, type TodaySalesData } from "@/services";
 
 const TodaySaleWrapper = () => {
   const [salesData, setSalesData] = useState<TodaySalesData | null>(null);
   const [loading, setLoading] = useState(true);
   const { selectedOption, customDates, selectedEmployee } = useGlobalContext();
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchSalesData = async () => {
+      // Use selectedEmployee if available, otherwise fallback to logged-in user's ID
+      const advisorId = selectedEmployee || user?.id?.toString();
+
+      if (!advisorId) {
+        console.error("No advisor ID available");
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       try {
         const data = await getAdvisorCardsData({
           selectedOption,
           customDates,
-          selectedEmployee,
+          selectedEmployee: advisorId,
           appType: "Savestment",
         });
 
@@ -34,7 +45,7 @@ const TodaySaleWrapper = () => {
     };
 
     fetchSalesData();
-  }, [selectedOption, customDates, selectedEmployee]);
+  }, [selectedOption, customDates, selectedEmployee, user?.id]);
 
   return <TodaySale data={salesData} loading={loading} appType="Savestment" />;
 };
