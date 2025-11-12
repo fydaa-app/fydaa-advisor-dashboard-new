@@ -73,7 +73,9 @@ export default function ClientsPage() {
         email: u.email ?? "",
         mobileNumber: u.mobileNumber ?? "",
         app: u.fromApp ?? "Unknown",
+        networth: u.total_investment ?? 0,
       }));
+
 
       // Apply search filter
       let filteredUsers = mappedClients;

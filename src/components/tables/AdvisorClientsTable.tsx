@@ -12,6 +12,7 @@ export interface AdvisorClientRow {
   email: string;
   mobileNumber: string;
   app?: string | null;
+  networth: number;
 }
 
 interface Props {
@@ -42,7 +43,7 @@ export default function AdvisorClientsTable({ rows, error }: Props) {
                   <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">Last Name</TableCell>
                   <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">Email</TableCell>
                   <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">Mobile Number</TableCell>
-                  {/* <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">App</TableCell> */}
+                  <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">Networth</TableCell>
                   <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">Action</TableCell>
                 </TableRow>
               </TableHeader>
@@ -55,11 +56,13 @@ export default function AdvisorClientsTable({ rows, error }: Props) {
                     <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">{r.lastName || "—"}</TableCell>
                     <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">{r.email || "—"}</TableCell>
                     <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">{r.mobileNumber || "—"}</TableCell>
-                    {/* <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      <Badge color={r.app?.toLowerCase() === "fydaa" ? "primary" : r.app?.toLowerCase() === "savestment" ? "info" : "light"}>
-                        {r.app ?? "Unknown"}
-                      </Badge>
-                    </TableCell> */}
+                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                      {new Intl.NumberFormat('en-IN', {
+                        style: 'currency',
+                        currency: 'INR',
+                        maximumFractionDigits: 0
+                      }).format(r.networth)}
+                    </TableCell>
 
                     <TableCell className="px-4 py-3 text-start">
                       <button
