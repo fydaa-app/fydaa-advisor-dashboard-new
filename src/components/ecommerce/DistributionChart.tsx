@@ -34,7 +34,7 @@ export default function DistributionChart({ title, labels, series, colors }: Dis
       colors: ["#fff"],
     },
     dataLabels: {
-      enabled: true,
+      enabled: false,
       style: {
         fontSize: "12px",
         fontWeight: 600,

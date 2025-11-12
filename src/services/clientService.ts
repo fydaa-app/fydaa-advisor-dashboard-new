@@ -9,6 +9,7 @@ export interface ClientData {
   email: string | null;
   mobileNumber: string;
   fromApp?: string;
+  total_investment: number;
 }
 
 interface AdvisorWiseUsersResponse {
@@ -22,6 +23,7 @@ interface AdvisorWiseUsersResponse {
       email: string | null;
       mobileNumber: string;
       fromApp?: string;
+      total_investment: number;
     }>;
     pagination: {
       total: number;
@@ -114,6 +116,7 @@ export const clientService = {
       email: user.email,
       mobileNumber: user.mobileNumber,
       fromApp: user.fromApp,
+      total_investment: user.total_investment,
     }));
 
     console.log(`Fetched ${clients.length} clients (page ${result.data.pagination.page}/${result.data.pagination.totalPages})`);
