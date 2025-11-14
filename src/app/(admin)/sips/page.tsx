@@ -147,6 +147,12 @@ export default function SipsPage() {
             </div>
           </form>
 
+          {!isLoading && total > 0 && (
+            <div className="mb-3 text-sm text-gray-600 dark:text-gray-400">
+              
+              {searchQuery && ` (filtered by "${searchQuery}")`}
+            </div>
+          )}
 
           {error && <p className="mb-4 text-red-600 font-semibold">{error}</p>}
 
