@@ -80,3 +80,19 @@ export {
   type AumTrendDataPoint,
   type AumTrendResponse,
 } from './aumTrendService';
+
+// XIRR services
+export {
+  xirrService,
+  XIRRService,
+  type XIRRData,
+  type XIRRTableData,
+} from './xirrService';
+
+// SIP services
+export {
+  getLatestSips,
+  type LatestSipOrder,
+  type LatestSipGroup,
+  type LatestSipsResponse,
+} from './sipService';

@@ -10,6 +10,8 @@ export interface ClientData {
   mobileNumber: string;
   fromApp?: string;
   total_investment: number;
+  createdAt: string;
+  hasSIP: number;
 }
 
 interface AdvisorWiseUsersResponse {
@@ -24,6 +26,8 @@ interface AdvisorWiseUsersResponse {
       mobileNumber: string;
       fromApp?: string;
       total_investment: number;
+      createdAt: string;
+      hasSIP: number;
     }>;
     pagination: {
       total: number;
@@ -83,7 +87,6 @@ export const clientService = {
 
     // Build query parameters
     const params = new URLSearchParams();
-    // ✅ Convert to lowercase for backend
     if (options?.appType) params.append('type', options.appType.toLowerCase());
     if (options?.page) params.append('page', options.page.toString());
     if (options?.limit) params.append('limit', options.limit.toString());
@@ -96,7 +99,6 @@ export const clientService = {
 
     console.log('Fetching clients from:', listUrl);
 
-    // ✅ Changed to POST (as per backend decorator)
     const listResponse = await fetch(listUrl, { 
       method: 'POST',
       headers 
@@ -117,6 +119,8 @@ export const clientService = {
       mobileNumber: user.mobileNumber,
       fromApp: user.fromApp,
       total_investment: user.total_investment,
+      createdAt: user.createdAt,
+      hasSIP: user.hasSIP,
     }));
 
     console.log(`Fetched ${clients.length} clients (page ${result.data.pagination.page}/${result.data.pagination.totalPages})`);

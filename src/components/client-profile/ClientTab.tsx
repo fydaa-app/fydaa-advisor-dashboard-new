@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import {
   Table,
@@ -10,6 +10,9 @@ import {
 } from "../ui/table";
 import Badge from "../ui/badge/Badge";
 import { ClientProfileData, clientDocumentService } from "@/services";
+import PerformanceXIRRTable from "../tables/PerformanceXIRRTable";
+import { xirrService, XIRRTableData } from "@/services";
+
 
 interface ClientTabProps {
   clientData: ClientProfileData;
@@ -19,6 +22,10 @@ export default function ClientTab({ clientData }: ClientTabProps) {
   const [activeTab, setActiveTab] = useState<string>('Portfolio');
   const [downloading, setDownloading] = useState<string | null>(null);
   const [sendingEmail, setSendingEmail] = useState<string | null>(null);
+
+  const [xirrData, setXirrData] = useState<XIRRTableData | null>(null);
+  const [loadingXIRR, setLoadingXIRR] = useState(false);
+  const [xirrError, setXirrError] = useState<string | null>(null);
   
   const userDetails = clientData.userDetails;
   const portfolioDetails = clientData.portfolioDetails;
@@ -106,6 +113,48 @@ export default function ClientTab({ clientData }: ClientTabProps) {
     }
   };
 
+  // Fetch XIRR data for Savestment users
+  const fetchXIRRData = async () => {
+    // Only fetch for Savestment users
+    if (clientData.userDetails.fromApp?.toLowerCase() !== 'savestment') {
+      return;
+    }
+
+    try {
+      setLoadingXIRR(true);
+      setXirrError(null);
+      const data = await xirrService.getUserXIRR(clientData.userDetails.id);
+      if (data) {
+        setXirrData(data);
+      } else {
+        setXirrError('Failed to load XIRR data');
+      }
+    } catch (error) {
+      console.error('Error fetching XIRR data:', error);
+      setXirrError('Failed to load XIRR data');
+    } finally {
+      setLoadingXIRR(false);
+    }
+  };
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    // Fetch XIRR data when Portfolio tab is opened for Savestment users
+    if (tab === 'Portfolio' && clientData.userDetails.fromApp?.toLowerCase() === 'savestment' && !xirrData) {
+      fetchXIRRData();
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'Portfolio' && 
+        clientData?.userDetails?.id && 
+        clientData.userDetails.fromApp?.toLowerCase() === 'savestment' &&
+        !xirrData) {
+      fetchXIRRData();
+    }
+  }, [activeTab, clientData?.userDetails?.id, clientData.userDetails.fromApp]);
+  
+
   return (
     <div className="grid grid-cols-12 gap-4 md:gap-6">
       {/* Left Column - Client Profile */}
@@ -187,7 +236,7 @@ export default function ClientTab({ clientData }: ClientTabProps) {
             {['Portfolio', 'Transaction', 'Stock', 'Profile', 'Reports'].map((tab) => (
               <button
                 key={tab}
-                onClick={() => setActiveTab(tab)}
+                onClick={() => handleTabChange(tab)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap
                   ${
                     activeTab === tab 
@@ -666,6 +715,43 @@ export default function ClientTab({ clientData }: ClientTabProps) {
           </div>
         </div>
       </div>
+
+
+      {/* XIRR Performance Table - Only visible for Savestment users with valid data */}
+            {activeTab === 'Portfolio' && 
+              clientData.userDetails.fromApp?.toLowerCase() === 'savestment' && 
+              xirrData && 
+              xirrService.hasValidData(xirrData) && (
+                <div className="col-span-12 mt-6 p-4 border border-gray-200 rounded-2xl dark:border-gray-800">
+                  <div className="border-b border-gray-100 dark:border-white/[0.05] pb-4 mb-6">
+                    <h3 className="text-lg font-semibold dark:text-gray-400">Performance Metrics (XIRR)</h3>
+                  </div>
+                  <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+                    <PerformanceXIRRTable 
+                      portfolioXIRR={xirrData.portfolioXIRR}
+                      benchmarkXIRR={xirrData.benchmarkXIRR}
+                      loading={loadingXIRR}
+                      error={xirrError}
+                    />
+                  </div>
+                </div>
+            )}
+
+            {/* Show "No Data" badge for Savestment users when no valid XIRR data */}
+            {activeTab === 'Portfolio' && 
+              clientData.userDetails.fromApp?.toLowerCase() === 'savestment' && 
+              xirrData && 
+              !xirrService.hasValidData(xirrData) && 
+              !loadingXIRR && (
+                <div className="col-span-12 mt-6 p-4 border border-gray-200 rounded-2xl dark:border-gray-800">
+                  <div className="border-b border-gray-100 dark:border-white/[0.05] pb-4 mb-6">
+                    <h3 className="text-lg font-semibold dark:text-gray-400">Performance Metrics</h3>
+                  </div>
+                  <div className="flex justify-center items-center py-8">
+                    <Badge color="warning">No XIRR Data Available</Badge>
+                  </div>
+                </div>
+            )}
     </div>
   );
 }

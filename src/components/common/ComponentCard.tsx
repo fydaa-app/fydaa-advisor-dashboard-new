@@ -1,11 +1,13 @@
 import React from "react";
 
 interface ComponentCardProps {
-  title: string;
+  // Change title type from string to React.ReactNode to allow JSX elements
+  title: React.ReactNode;
   children: React.ReactNode;
   className?: string; // Additional custom classes for styling
   desc?: string; // Description text
 }
+
 
 const ComponentCard: React.FC<ComponentCardProps> = ({
   title,
