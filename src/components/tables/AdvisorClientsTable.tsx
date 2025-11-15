@@ -3,7 +3,6 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
-// import Badge from "@/components/ui/badge/Badge";
 
 export interface AdvisorClientRow {
   id: number;
@@ -11,8 +10,10 @@ export interface AdvisorClientRow {
   lastName: string;
   email: string;
   mobileNumber: string;
-  app?: string | null;
+  app?: string | null;          // This field indicates the app, e.g. "fydaa"
   networth: number;
+  onboardingDate: string;
+  hasSIP: boolean;
 }
 
 interface Props {
@@ -20,8 +21,26 @@ interface Props {
   error: string | null;
 }
 
+// Simple Badge Component
+const Badge = ({ variant, children }: { variant: 'success' | 'error'; children: React.ReactNode }) => {
+  const baseClasses = "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium";
+  const variantClasses = variant === 'success' 
+    ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" 
+    : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
+  
+  return (
+    <span className={`${baseClasses} ${variantClasses}`}>
+      {children}
+    </span>
+  );
+};
+
+
 export default function AdvisorClientsTable({ rows, error }: Props) {
   const router = useRouter();
+
+  // Determine if SIP column should be shown (any user with app 'fydaa')
+  const showSIPColumn = rows.some(row => row.app?.toLowerCase() === 'fydaa');
 
   const handleViewClient = (clientId: number) => {
     if (typeof window !== 'undefined') {
@@ -30,19 +49,38 @@ export default function AdvisorClientsTable({ rows, error }: Props) {
     router.push('/clients/profile');
   };
 
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "—";
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "—";
+    return new Intl.DateTimeFormat('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'Asia/Kolkata'
+    }).format(date);
+  };
+
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
       <div className="max-w-full overflow-x-auto">
-        <div className="min-w-[800px]">
+        <div className="min-w-[1000px]">
           {error && <div className="m-4"><p style={{ color: "red" }}>{error}</p></div>}
           {!error && rows.length > 0 ? (
             <Table>
               <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                 <TableRow>
+                  <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">Onboarding Date</TableCell>
                   <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">First Name</TableCell>
                   <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">Last Name</TableCell>
                   <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">Email</TableCell>
                   <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">Mobile Number</TableCell>
+
+                  {/* Conditionally render SIP header cell */}
+                  {showSIPColumn && (
+                    <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">SIP</TableCell>
+                  )}
+
                   <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">Networth</TableCell>
                   <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">Action</TableCell>
                 </TableRow>
@@ -50,12 +88,27 @@ export default function AdvisorClientsTable({ rows, error }: Props) {
               <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
                 {rows.map((r, i) => (
                   <TableRow key={`${r.id}-${i}`}>
-                    <TableCell className="px-5 py-4 sm:px-6 text-start">
+                    <TableCell className="px-5 py-4 text-start">
+                      <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
+                        {formatDate(r.onboardingDate)}
+                      </span>
+                    </TableCell>
+                    <TableCell className="px-5 py-4 text-start">
                       <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">{r.firstName || "—"}</span>
                     </TableCell>
                     <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">{r.lastName || "—"}</TableCell>
                     <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">{r.email || "—"}</TableCell>
                     <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">{r.mobileNumber || "—"}</TableCell>
+
+                    {/* Conditionally render SIP cell */}
+                    {showSIPColumn && (
+                      <TableCell className="px-4 py-3 text-start">
+                        <Badge variant={r.hasSIP ? 'success' : 'error'}>
+                          {r.hasSIP ? 'Yes' : 'No'}
+                        </Badge>
+                      </TableCell>
+                    )}
+
                     <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                       {new Intl.NumberFormat('en-IN', {
                         style: 'currency',
@@ -63,7 +116,6 @@ export default function AdvisorClientsTable({ rows, error }: Props) {
                         maximumFractionDigits: 0
                       }).format(r.networth)}
                     </TableCell>
-
                     <TableCell className="px-4 py-3 text-start">
                       <button
                         onClick={() => handleViewClient(r.id)}

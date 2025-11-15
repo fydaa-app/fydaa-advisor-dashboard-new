@@ -52,13 +52,12 @@ export default function ClientsPage() {
         ? 'fydaa' 
         : undefined;
 
-      // ✅ Use selectedOption from global context
       const timeframeValue = selectedOption as 'daily' | 'weekly' | 'monthly' | 'yearly' | 'till_date' | 'custom' | undefined;
 
       const response = await clientService.fetchAdvisorClients(user.id, {
         appType: normalizedAppType,
-        page: searchQuery ? 1 : page, // Always page 1 when searching
-        limit: searchQuery ? 1000 : pageSize, // Fetch more records when searching
+        page: searchQuery ? 1 : page,
+        limit: searchQuery ? 1000 : pageSize,
         timeframe: timeframeValue,
         startDate: selectedOption === 'custom' ? customDates.start : undefined,
         endDate: selectedOption === 'custom' ? customDates.end : undefined,
@@ -74,13 +73,19 @@ export default function ClientsPage() {
         mobileNumber: u.mobileNumber ?? "",
         app: u.fromApp ?? "Unknown",
         networth: u.total_investment ?? 0,
+        onboardingDate: u.createdAt,
+        hasSIP: u.hasSIP === 1,
       }));
 
+      // Sort by onboarding date (newest first)
+      const sortedClients = mappedClients.sort((a, b) => {
+        return new Date(b.onboardingDate).getTime() - new Date(a.onboardingDate).getTime();
+      });
 
       // Apply search filter
-      let filteredUsers = mappedClients;
+      let filteredUsers = sortedClients;
       if (searchQuery) {
-        filteredUsers = mappedClients.filter((client) => {
+        filteredUsers = sortedClients.filter((client) => {
           const matches =
             client.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
             client.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -97,7 +102,7 @@ export default function ClientsPage() {
         setTotalPages(Math.ceil(filteredUsers.length / pageSize));
         setTotal(filteredUsers.length);
       } else {
-        setClients(mappedClients);
+        setClients(sortedClients);
         setTotalPages(response.pagination.totalPages);
         setTotal(response.pagination.total);
       }
