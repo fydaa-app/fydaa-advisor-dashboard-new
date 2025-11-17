@@ -50,9 +50,10 @@ interface FetchLatestSipsParams {
   appType?: 'savestment' | 'fydaa';
   page?: number;
   groupStatus?: string;
-  timeframe?: 'daily' | 'weekly' | 'monthly' | 'till_date';
+  timeframe?: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'till_date' | 'custom'; // ✅ FIXED
   startDate?: string;
   endDate?: string;
+  search?: string;
 }
 
 export const getLatestSips = async (params: FetchLatestSipsParams): Promise<LatestSipsResponse | null> => {
@@ -68,13 +69,17 @@ export const getLatestSips = async (params: FetchLatestSipsParams): Promise<Late
     let url = `${API_URL}/referrals/latest-sips/${params.advisorId}?`;
 
     const queryParams = new URLSearchParams();
-    
+
+    // Always append page, defaulting to 1 if invalid or missing
+    const pageNum = params.page && params.page > 0 ? params.page : 1;
+    queryParams.append('page', pageNum.toString());
+
     if (params.appType) queryParams.append('type', params.appType);
-    if (params.page) queryParams.append('page', params.page.toString());
     if (params.groupStatus) queryParams.append('groupStatus', params.groupStatus);
     if (params.timeframe) queryParams.append('timeframe', params.timeframe);
     if (params.startDate) queryParams.append('startDate', params.startDate);
     if (params.endDate) queryParams.append('endDate', params.endDate);
+    if (params.search) queryParams.append('search', params.search);
 
     url += queryParams.toString();
 

@@ -30,7 +30,9 @@ export default function SipsPage() {
       "timeframe:",
       selectedOption,
       "page:",
-      page
+      page,
+      "customDates:",
+      customDates
     );
 
     if (!user?.id) {
@@ -44,46 +46,41 @@ export default function SipsPage() {
 
     setIsLoading(true);
     try {
-      const timeframeValue = selectedOption as 'daily' | 'weekly' | 'monthly' | 'till_date' | undefined;
+      // ✅ FIXED: Properly handle custom vs till_date
+      let timeframeValue: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'till_date' | 'custom' = 'monthly';
+      let startDateValue: string | undefined;
+      let endDateValue: string | undefined;
+
+      if (selectedOption === 'custom') {
+        timeframeValue = 'custom';
+        startDateValue = customDates.start;
+        endDateValue = customDates.end;
+      } else if (selectedOption === 'till_date') {
+        timeframeValue = 'till_date';
+        // No dates needed for till_date - it shows ALL records
+      } else if (selectedOption) {
+        timeframeValue = selectedOption as 'daily' | 'weekly' | 'monthly' | 'yearly';
+      }
+
+      console.log("Sending to API - timeframe:", timeframeValue, "startDate:", startDateValue, "endDate:", endDateValue);
 
       const response = await getLatestSips({
         advisorId: user.id,
         appType: 'fydaa',
-        page: searchQuery ? 1 : page,
-        timeframe: timeframeValue || 'monthly',
-        startDate: selectedOption === 'custom' ? customDates.start : undefined,
-        endDate: selectedOption === 'custom' ? customDates.end : undefined,
+        page: page,
+        timeframe: timeframeValue,
+        startDate: startDateValue,
+        endDate: endDateValue,
+        search: searchQuery || undefined,
       });
 
       console.log("Fetched SIPs response:", response);
 
       if (response?.success) {
         const sipData = response.data;
-
-        // Apply search filter
-        let filteredSips = sipData;
-        if (searchQuery) {
-          filteredSips = sipData.filter((sip) => {
-            const matches =
-              sip.sipName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              sip.userFullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              sip.goalName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              sip.groupStatus?.toLowerCase().includes(searchQuery.toLowerCase());
-            return matches;
-          });
-          
-          // When searching, paginate filtered results client-side
-          const startIndex = (page - 1) * pageSize;
-          const endIndex = startIndex + pageSize;
-          setSips(filteredSips.slice(startIndex, endIndex));
-          setTotalPages(Math.ceil(filteredSips.length / pageSize));
-          setTotal(filteredSips.length);
-        } else {
-          setSips(sipData);
-          setTotalPages(response.totalPages);
-          setTotal(sipData.length);
-        }
-
+        setSips(sipData);
+        setTotalPages(response.totalPages);
+        setTotal(response.totalPages * pageSize);
         setError(null);
       } else {
         setError("Failed to load SIPs");
@@ -109,7 +106,7 @@ export default function SipsPage() {
   // Reset to page 1 when search query or timeframe changes
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, selectedOption]);
+  }, [searchQuery, selectedOption, customDates]);
 
   // Keyboard shortcut "Cmd/Ctrl + K" focuses search input
   useEffect(() => {

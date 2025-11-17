@@ -62,8 +62,8 @@ export default function LatestSipsList() {
           appType: 'fydaa',
           page: 1,
           timeframe: (selectedOption as "monthly" | "daily" | "weekly" | "till_date" | undefined) || "monthly",
-          startDate: selectedOption === 'custom' ? customDates.start : undefined,
-          endDate: selectedOption === 'custom' ? customDates.end : undefined,
+          startDate: selectedOption === 'till_date' ? customDates.start : undefined,
+          endDate: selectedOption === 'till_date' ? customDates.end : undefined,
           groupStatus: selectedStatus !== 'all' ? selectedStatus : undefined,
         });
 
