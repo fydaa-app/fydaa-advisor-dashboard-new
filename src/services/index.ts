@@ -18,24 +18,6 @@ export {
   type TodaySalesData,
 } from './dashboardService';
 
-// Transaction services
-export {
-  getTransactions,
-  clearTransactionsCache,
-  type Transaction,
-  type FetchTransactionsParams,
-  type FetchTransactionsResponse,
-} from './transactionService';
-
-// Portfolio services
-export {
-  getPortfolios,
-  clearPortfoliosCache,
-  type Portfolio,
-  type FetchPortfoliosParams,
-  type FetchPortfoliosResponse,
-} from './portfolioService';
-
 // Admin services
 export {
   getDesignations,
@@ -65,6 +47,14 @@ export {
 export {
   clientProfileService,
   type ClientProfileData,
+  type MutualFund,
+  type Stock,
+  type Goal,
+  type SIP,
+  type MutualFundDetail,
+  type PortfolioDetail,
+  type Transaction,
+  type StockOrder,
 } from './clientProfileService';
 
 // Client Document services
@@ -72,7 +62,7 @@ export {
   clientDocumentService,
   type EmailReportRequest,
   type EmailReportResponse,
-} from './clientDocumentService'
+} from './clientDocumentService';
 
 // AUM Trend services
 export {
