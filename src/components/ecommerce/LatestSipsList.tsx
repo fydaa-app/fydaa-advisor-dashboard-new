@@ -3,33 +3,35 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { useGlobalContext } from "@/context/GlobalState";
-import { getLatestSips, LatestSipGroup } from "@/services";
+import { getSipMfTransactions, SipMfTransaction, type FrontendStatus } from "@/services/sipMfTransactionService";
 import ComponentCard from "../common/ComponentCard";
 import Select from "@/components/form/Select";
 import { ChevronDownIcon } from "@/icons";
 
-const StatusBadge = ({ status }: { status: string }) => {
-  const getStatusStyles = () => {
-    switch (status.toLowerCase()) {
-      case 'full success':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-      case 'fully failed':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
-      case 'partial failed':
-        return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400';
-      case 'partial success':
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
-      case 'submitted':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
-    }
-  };
+const StatusBadge = ({ status }: { status: FrontendStatus }) => {
+  const baseClasses = "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium";
+  let variantClasses = "";
+
+  switch (status) {
+    case 'SUCCESS':
+      variantClasses = "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
+      break;
+    case 'FAILED':
+      variantClasses = "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
+      break;
+    case 'IN_PROCESS':
+      variantClasses = "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400";
+      break;
+    case 'PARTIAL':
+      variantClasses = "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400";
+      break;
+  }
+
+  const statusText = status === 'IN_PROCESS' ? 'In Process' : status.charAt(0) + status.slice(1).toLowerCase();
 
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusStyles()}`}>
-      {status}
+    <span className={`${baseClasses} ${variantClasses}`}>
+      {statusText}
     </span>
   );
 };
@@ -37,66 +39,65 @@ const StatusBadge = ({ status }: { status: string }) => {
 export default function LatestSipsList() {
   const router = useRouter();
   const { user } = useAuth();
-  const { selectedOption, customDates } = useGlobalContext();
-  const [sips, setSips] = useState<LatestSipGroup[]>([]);
+  const [transactions, setTransactions] = useState<SipMfTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [selectedStatus, setSelectedStatus] = useState<FrontendStatus | 'all'>('all');
 
   const statusOptions = [
     { value: 'all', label: 'All Status' },
-    { value: 'full success', label: 'Full Success' },
-    { value: 'partial success', label: 'Partial Success' },
-    { value: 'submitted', label: 'Submitted' },
-    { value: 'partial failed', label: 'Partial Failed' },
-    { value: 'fully failed', label: 'Fully Failed' },
+    { value: 'SUCCESS', label: 'Success' },
+    { value: 'FAILED', label: 'Failed' },
+    { value: 'PARTIAL', label: 'Partial' },
+    { value: 'IN_PROCESS', label: 'In Process' },
   ];
 
   useEffect(() => {
-    const fetchSips = async () => {
+    const fetchTransactions = async () => {
       if (!user?.id) return;
 
       setIsLoading(true);
       try {
-        const response = await getLatestSips({
-          advisorId: user.id,
-          appType: 'fydaa',
+        const response = await getSipMfTransactions({
           page: 1,
-          timeframe: (selectedOption as "monthly" | "daily" | "weekly" | "till_date" | undefined) || "monthly",
-          startDate: selectedOption === 'till_date' ? customDates.start : undefined,
-          endDate: selectedOption === 'till_date' ? customDates.end : undefined,
-          groupStatus: selectedStatus !== 'all' ? selectedStatus : undefined,
+          limit: 10,
+          timeframe: 'yearly',
+          count: 1,
+          status: selectedStatus !== 'all' ? selectedStatus : undefined,
         });
 
         if (response?.success) {
-          setSips(response.data.slice(0, 5));
+          setTransactions(response.data);
         }
       } catch (error) {
-        console.error("Error fetching latest SIPs:", error);
+        console.error("Error fetching latest SIP transactions:", error);
       } finally {
         setIsLoading(false);
       }
     };
-    fetchSips();
-  }, [user?.id, selectedOption, customDates, selectedStatus]);
+    fetchTransactions();
+  }, [user?.id, selectedStatus]);
 
   const handleTitleClick = () => {
     router.push('/sips');
   };
 
-  // Handle change for Select expecting string value
-  const handleStatusChange = (option: { value: string } | null) => {
-    if (option && typeof option.value === 'string') {
-      setSelectedStatus(option.value);
-    } else {
-      setSelectedStatus('all');
-    }
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "—";
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "—";
+    return new Intl.DateTimeFormat('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'Asia/Kolkata'
+    }).format(date);
   };
 
-  // Custom title node with inline dropdown (not changing ComponentCard)
+  // Custom title node with inline dropdown
   const TitleWithDropdown = (
     <div className="flex items-center justify-between select-none pt-[1.25rem] pb-[0.625rem] px-6">
       <span
-        className="text-base font-medium text-gray-800 dark:text-white/90 cursor-pointer"
+        className="text-lg font-semibold text-gray-800 dark:text-white/90 cursor-pointer"
         onClick={handleTitleClick}
         role="link"
         tabIndex={0}
@@ -105,21 +106,22 @@ export default function LatestSipsList() {
             handleTitleClick();
           }
         }}
-        aria-label="Latest SIPs"
+        aria-label="Latest SIP Transactions"
       >
-        Latest SIPs
+        Latest SIP Transactions
       </span>
       <div className="relative w-48">
         <Select
           options={statusOptions}
-          placeholder="Select Status"
+          placeholder="All Status"
           value={selectedStatus}
-          onChange={handleStatusChange}
-          className="dark:bg-dark-900"
+          onChange={(option: { value: string; label: string } | null) => 
+            setSelectedStatus((option?.value as FrontendStatus | 'all') || 'all')
+          }
         />
         <span className="absolute text-gray-500 -translate-y-1/2 pointer-events-none right-3 top-1/2 dark:text-gray-400">
-          <ChevronDownIcon />
-        </span>
+              <ChevronDownIcon/>
+            </span>
       </div>
     </div>
   );
@@ -130,41 +132,46 @@ export default function LatestSipsList() {
         <div className="flex items-center justify-center h-64">
           <span className="loading loading-spinner loading-lg" />
         </div>
-      ) : sips.length === 0 ? (
+      ) : transactions.length === 0 ? (
         <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
-          <p>No SIPs found</p>
+          <p>No SIP transactions found</p>
         </div>
       ) : (
-        <div className="overflow-hidden p-6 pt-0">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="border-b border-gray-100 dark:border-white/[0.05]">
-                <tr>
-                  <th className="px-4 py-3 text-xs font-bold text-left text-gray-900 dark:text-gray-400">Client Name</th>
-                  <th className="px-4 py-3 text-xs font-bold text-left text-gray-900 dark:text-gray-400">SIP Name</th>
-                  <th className="px-4 py-3 text-xs font-bold text-left text-gray-900 dark:text-gray-400">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                {sips.map((sip, index) => (
+        <div className="max-h-[400px] overflow-y-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 dark:bg-white/[0.02] sticky top-0 z-10">
+              <tr>
+                <th className="px-6 py-3 text-xs font-bold text-left text-gray-900 dark:text-gray-400 border-b border-gray-100 dark:border-white/[0.05]">Date</th>
+                <th className="px-6 py-3 text-xs font-bold text-left text-gray-900 dark:text-gray-400 border-b border-gray-100 dark:border-white/[0.05]">User Name</th>
+                <th className="px-6 py-3 text-xs font-bold text-center text-gray-900 dark:text-gray-400 border-b border-gray-100 dark:border-white/[0.05]">Total Orders</th>
+                <th className="px-6 py-3 text-xs font-bold text-left text-gray-900 dark:text-gray-400 border-b border-gray-100 dark:border-white/[0.05]">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
+              {transactions.map((transaction, index) => {
+                const userName = `${transaction.userInfo.firstName} ${transaction.userInfo.lastName}`.trim();
+                return (
                   <tr
-                    key={`${sip.sipId}-${index}`}
+                    key={`${transaction.transactionId}-${index}`}
                     className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors"
                   >
-                    <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-white/90">
-                      {sip.userFullName || "—"}
+                    <td className="px-6 py-3 text-sm text-gray-500 dark:text-gray-400">
+                      {formatDate(transaction.createdAt)}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                      {sip.sipName || "—"}
+                    <td className="px-6 py-3 text-sm font-medium text-gray-800 dark:text-white/90">
+                      {userName || "—"}
                     </td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={sip.groupStatus} />
+                    <td className="px-6 py-3 text-sm text-center text-gray-500 dark:text-gray-400">
+                      {transaction.totalOrders}
+                    </td>
+                    <td className="px-6 py-3">
+                      <StatusBadge status={transaction.status} />
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
     </ComponentCard>
