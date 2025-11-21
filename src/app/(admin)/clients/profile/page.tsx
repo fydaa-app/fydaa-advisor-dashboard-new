@@ -1,6 +1,6 @@
 "use client";
-import React, { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import React, { useEffect, useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import ComponentCard from "@/components/common/ComponentCard";
 import ClientTab from "@/components/client-profile/ClientTab";
@@ -8,7 +8,13 @@ import { useClientProfile } from "@/hooks/useClientProfile";
 
 export default function ClientProfilePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { clientData, loading, error } = useClientProfile();
+
+  const fromUrl = useMemo(() => {
+    const from = searchParams.get("from");
+    return from && from.startsWith("/") ? from : "/clients";
+  }, [searchParams]);
 
   useEffect(() => {
     // Redirect to clients page if no client ID is found
@@ -50,10 +56,11 @@ export default function ClientProfilePage() {
     );
   }
 
-const clientName = clientData.userDetails 
-  ? [clientData.userDetails.firstName, clientData.userDetails.lastName].filter(Boolean).join(' ') || "Client Profile"
-  : "Client Profile";
-
+  const clientName =
+    clientData.userDetails
+      ? [clientData.userDetails.firstName, clientData.userDetails.lastName].filter(Boolean).join(" ") ||
+        "Client Profile"
+      : "Client Profile";
 
   return (
     <div>
@@ -61,7 +68,7 @@ const clientName = clientData.userDetails
       <div className="space-y-6">
         <div className="mb-4">
           <button 
-            onClick={() => router.push('/clients')}
+            onClick={() => router.push(fromUrl)}
             className="flex items-center text-blue-600 hover:text-blue-800"
           >
             <svg 

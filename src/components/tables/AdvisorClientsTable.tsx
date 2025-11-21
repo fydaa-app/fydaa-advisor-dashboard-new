@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
 
 export interface AdvisorClientRow {
@@ -38,26 +38,36 @@ const Badge = ({ variant, children }: { variant: 'success' | 'error'; children: 
 
 export default function AdvisorClientsTable({ rows, error }: Props) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   // Determine if SIP column should be shown (any user with app 'fydaa')
-  const showSIPColumn = rows.some(row => row.app?.toLowerCase() === 'fydaa');
+  const showSIPColumn = rows.some((row) => row.app?.toLowerCase() === "fydaa");
 
   const handleViewClient = (clientId: number) => {
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('selectedClientId', clientId.toString());
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("selectedClientId", clientId.toString());
+      sessionStorage.setItem("clientsSkipNextPageReset", "true");
     }
-    router.push('/clients/profile');
+
+    // Build "from" URL that captures current clients list state (including pagination & search)
+    const currentPath = pathname || "/clients";
+    const currentQuery = searchParams.toString();
+    const fromUrl = currentQuery ? `${currentPath}?${currentQuery}` : currentPath;
+
+    const profileUrl = `/clients/profile?from=${encodeURIComponent(fromUrl)}`;
+    router.push(profileUrl);
   };
 
   const formatDate = (dateString: string) => {
     if (!dateString) return "—";
     const date = new Date(dateString);
-    if (isNaN(date.getTime())) return "—";
-    return new Intl.DateTimeFormat('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      timeZone: 'Asia/Kolkata'
+    if (Number.isNaN(date.getTime())) return "—";
+    return new Intl.DateTimeFormat("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      timeZone: "Asia/Kolkata",
     }).format(date);
   };
 
