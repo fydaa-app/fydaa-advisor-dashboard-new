@@ -69,7 +69,7 @@ export default function StockSavestmentTable({
         </TableRow>
       </TableHeader>
       <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-        {allStocks.map((stock, index) => (
+        {allStocks.slice().sort((a, b) => a.stockName.localeCompare(b.stockName)).map((stock, index) => (
           <TableRow key={`${stock.stockId}-${index}`}>
             <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
               {stock.stockName}
