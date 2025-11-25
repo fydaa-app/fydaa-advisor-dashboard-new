@@ -77,7 +77,7 @@ export default function StockFydaaTable({
           </TableRow>
         </TableHeader>
         <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-          {allMutualFunds.map((fund, index) => {
+          {allMutualFunds.slice().sort((a, b) => a.stockName.localeCompare(b.stockName)).map((fund, index) => {
             return (
               <TableRow key={`${fund.stockId}-${index}`}>
                 <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
