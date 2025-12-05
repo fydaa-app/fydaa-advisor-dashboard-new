@@ -98,6 +98,9 @@ export interface SIP {
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
+  next_installment_date?: string;
+  previous_installment_date?: string;
+  remaining_installments?: number;
 }
 
 export interface MutualFundDetail {
@@ -222,6 +225,34 @@ export interface ClientProfileData {
     attachment2: string;
   } | null;
   mutualFundDetails: MutualFundDetail[];
+  transactionsMF: Array<{
+    transactionId: string;
+    userId: number;
+    userInfo: {
+      firstName: string;
+      lastName: string;
+      email: string | null;
+    };
+    sipId: number;
+    totalOrders: number;
+    successfulOrders: number;
+    failedOrders: number;
+    submittedOrders: number;
+    totalAmount: number;
+    processedAmount: number;
+    status: 'IN_PROCESS' | 'FAILED' | 'SUCCESS' | 'PARTIAL' | 'PARTIALLY_SUCCESSFUL' | 'FULLY_SUCCESSFUL';
+    createdAt: string;
+    orders: Array<{
+      id: number;
+      scheme: string;
+      schemeName: string;
+      state: 'submitted' | 'failed' | 'successful';
+      amount: number;
+      processed_amount: number;
+      failure_code: string | null;
+      last_error: string | null;
+    }>;
+  }>;
 }
 
 // ============= Helper Functions =============

@@ -233,7 +233,7 @@ export default function ClientTab({ clientData }: ClientTabProps) {
         <div className="flex flex-col gap-5">
           {/* Tabs Navigation */}
           <div className="flex gap-2 overflow-x-auto">
-            {["Portfolio", "Transaction", "Stock", "Profile", "Reports"].map(
+            {["Portfolio", "Transaction", isSavestment ? "Stock" : "Mutual Funds", "Profile", "Reports"].map(
               (tab) => (
                 <button
                   key={tab}
@@ -276,7 +276,7 @@ export default function ClientTab({ clientData }: ClientTabProps) {
             )}
 
             {/* Stock Tab */}
-            {activeTab === "Stock" &&
+            {(activeTab === "Stock" || activeTab === "Mutual Funds") &&
               (isSavestment ? (
                 <StockTabSavestment clientData={clientData} />
               ) : (
