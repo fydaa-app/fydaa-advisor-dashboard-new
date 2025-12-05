@@ -1,3 +1,4 @@
+// components/client-profile/PortfolioFydaaTable.tsx
 "use client";
 import React from "react";
 import { MutualFundDetail } from "@/services";
@@ -55,6 +56,19 @@ export default function PortfolioFydaaTable({
 
     // Default to numbered portfolio
     return `Mutual Fund Portfolio ${index + 1}`;
+  };
+
+  // Format date to readable format
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "—";
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "—";
+    return new Intl.DateTimeFormat('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'Asia/Kolkata'
+    }).format(date);
   };
 
   return (
@@ -204,6 +218,22 @@ export default function PortfolioFydaaTable({
                     </p>
                     <p className="font-medium text-gray-900 dark:text-gray-100">
                       {portfolio.sip[0].sipTenure} months
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Due Date
+                    </p>
+                    <p className="font-medium text-gray-900 dark:text-gray-100">
+                      {formatDate(portfolio.sip[0].next_installment_date || '')}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Remaining Installments
+                    </p>
+                    <p className="font-medium text-gray-900 dark:text-gray-100">
+                      {portfolio.sip[0].remaining_installments}
                     </p>
                   </div>
                 </div>
