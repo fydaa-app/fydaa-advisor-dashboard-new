@@ -7,6 +7,7 @@ import TodaySaleWrapperMf from "@/components/ecommerce/TodaySaleWrapperMf";
 import PortfolioDistribution from "@/components/ecommerce/PortfolioDistribution";
 import LatestSipsList from "@/components/ecommerce/LatestSipsList";
 import AumTrendChart from "@/components/ecommerce/AumTrendChart";
+import SipWrapper from "@/components/ecommerce/SipWrapper";
 
 export default function Ecommerce() {
   const { appType } = useGlobalContext();
@@ -15,6 +16,13 @@ export default function Ecommerce() {
     <div className="flex flex-col gap-6">
       {/* KPI Cards Section */}
       {appType === "Fydaa" ? <TodaySaleWrapperMf /> : <TodaySaleWrapper />}
+
+      {/* SIP Summary Section - Only for Fydaa app type */}
+      {appType === "Fydaa" && (
+        <div className="w-full">
+          <SipWrapper />
+        </div>
+      )}
 
       {/* Charts Grid */}
       <div className="grid grid-cols-12 gap-4 md:gap-6 auto-rows-fr">

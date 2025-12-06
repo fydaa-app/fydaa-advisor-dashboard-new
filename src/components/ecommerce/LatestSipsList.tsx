@@ -77,7 +77,7 @@ export default function LatestSipsList() {
     fetchTransactions();
   }, [user?.id, selectedStatus]);
 
-  const handleTitleClick = () => {
+  const handleViewAllClick = () => {
     router.push('/sips');
   };
 
@@ -93,41 +93,38 @@ export default function LatestSipsList() {
     }).format(date);
   };
 
-  // Custom title node with inline dropdown
-  const TitleWithDropdown = (
+  // Custom title node with View All button and dropdown
+  const TitleWithViewAllAndDropdown = (
     <div className="flex items-center justify-between select-none pt-[1.25rem] pb-[0.625rem] px-6">
-      <span
-        className="text-lg font-semibold text-gray-800 dark:text-white/90 cursor-pointer"
-        onClick={handleTitleClick}
-        role="link"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            handleTitleClick();
-          }
-        }}
-        aria-label="Latest SIP Transactions"
-      >
+      <span className="text-lg font-semibold text-gray-800 dark:text-white/90">
         Latest SIP Transactions
       </span>
-      <div className="relative w-48">
-        <Select
-          options={statusOptions}
-          placeholder="All Status"
-          value={selectedStatus}
-          onChange={(option: { value: string; label: string } | null) => 
-            setSelectedStatus((option?.value as FrontendStatus | 'all') || 'all')
-          }
-        />
-        <span className="absolute text-gray-500 -translate-y-1/2 pointer-events-none right-3 top-1/2 dark:text-gray-400">
-              <ChevronDownIcon/>
-            </span>
+      <div className="flex items-center gap-3">
+        <button
+          onClick={handleViewAllClick}
+          className="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 dark:text-blue-400 dark:bg-blue-900/30 dark:border-blue-800 dark:hover:bg-blue-900/50 transition-colors"
+        >
+          View All
+        </button>
+        <div className="relative w-48">
+          <Select
+            options={statusOptions}
+            placeholder="All Status"
+            value={selectedStatus}
+            onChange={(option: { value: string; label: string } | null) => 
+              setSelectedStatus((option?.value as FrontendStatus | 'all') || 'all')
+            }
+          />
+          <span className="absolute text-gray-500 -translate-y-1/2 pointer-events-none right-3 top-1/2 dark:text-gray-400">
+                <ChevronDownIcon/>
+              </span>
+        </div>
       </div>
     </div>
   );
 
   return (
-    <ComponentCard title={TitleWithDropdown} className="h-full" desc="">
+    <ComponentCard title={TitleWithViewAllAndDropdown} className="h-full" desc="">
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
           <span className="loading loading-spinner loading-lg" />
@@ -149,7 +146,7 @@ export default function LatestSipsList() {
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
               {transactions.map((transaction, index) => {
-                const userName = `${transaction.userInfo.firstName} ${transaction.userInfo.lastName}`.trim();
+                const userName = `${transaction.userInfo.firstName || ""} ${transaction.userInfo.lastName || ""}`.trim() || "—";
                 return (
                   <tr
                     key={`${transaction.transactionId}-${index}`}

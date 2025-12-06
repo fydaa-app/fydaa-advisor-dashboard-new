@@ -56,6 +56,9 @@ import NewCustomerIcon from "./new-customer.svg";
 import DiscIcon from "./disc.svg";
 import OrderIcon from "./order.svg";
 import SalesIcon from "./sales.svg";
+import SalesIconGreen from "./sales-green.svg";
+import SalesIconOrange from "./sales-orange.svg";
+import SalesIconViolet from "./sales-pruple.svg";
 import LeaderboardIcon from "./leaderboard.svg";
 import SettingIcon from "./setting.svg";
 import ShoppingCartIcon from "./shopping-cart.svg";
@@ -118,6 +121,9 @@ export {
   DiscIcon,
   OrderIcon,
   SalesIcon,
+  SalesIconGreen,
+  SalesIconOrange,
+  SalesIconViolet,
   LeaderboardIcon,
   SettingIcon,
   ShoppingCartIcon,

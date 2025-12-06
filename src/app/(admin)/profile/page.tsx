@@ -10,7 +10,7 @@ import AdvisorProfilePictureCard from "@/components/profile/AdvisorProfilePictur
 
 export default function ProfilePage() {
   const { user } = useAuth();
-  const { advisorData, loading, error } = useAdvisor(user?.id || null);
+  const { advisor, loading, error } = useAdvisor();
 
   if (!user) {
     return (
@@ -38,10 +38,10 @@ export default function ProfilePage() {
     <div>
       <PageBreadcrumb pageTitle="Profile" />
       <div className="space-y-6">
-        <AdvisorProfilePictureCard advisor={advisorData} error={error} />
-        <AdvisorPersonalCard advisor={advisorData} error={error} />
-        <AdvisorProfessionalCard advisor={advisorData} error={error} />
-        <AdvisorStatsCard advisor={advisorData} error={error} />
+        <AdvisorProfilePictureCard advisor={advisor} error={error} />
+        <AdvisorPersonalCard advisor={advisor} error={error} />
+        <AdvisorProfessionalCard advisor={advisor} error={error} />
+        <AdvisorStatsCard advisor={advisor} error={error} />
       </div>
     </div>
   );
