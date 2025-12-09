@@ -100,7 +100,7 @@ export default function SipMfTransactionsTable({ transactions, error }: Props) {
 
   const getReferredByName = (referredUserInfo: SipMfTransaction['referredUserInfo']) => {
     if (!referredUserInfo) return "—";
-    return `${referredUserInfo.firstName} ${referredUserInfo.lastName}`.trim() || "—";
+    return `${referredUserInfo.firstName || ""} ${referredUserInfo.lastName || ""}`.trim() || "—";
   };
 
   return (
@@ -129,7 +129,7 @@ export default function SipMfTransactionsTable({ transactions, error }: Props) {
               <tbody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
                 {transactions.map((transaction) => {
                   const isExpanded = expandedRows.has(transaction.transactionId);
-                  const userName = `${transaction.userInfo.firstName} ${transaction.userInfo.lastName}`.trim();
+                  const userName = `${transaction.userInfo.firstName || ""} ${transaction.userInfo.lastName || ""}`.trim() || "—";
 
                   return (
                     <React.Fragment key={transaction.transactionId}>

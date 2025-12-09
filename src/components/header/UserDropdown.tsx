@@ -8,7 +8,7 @@ import { useAdvisor } from "@/hooks/useAdvisor";
 
 export default function UserDropdown() {
   const { user, logout } = useAuth();
-  const { advisorData } = useAdvisor(user?.id || null);
+  const { advisor } = useAdvisor();
   const [isOpen, setIsOpen] = useState(false);
 
   function toggleDropdown(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
@@ -31,10 +31,10 @@ export default function UserDropdown() {
         className="flex items-center text-gray-700 dark:text-gray-400 dropdown-toggle"
       >
         <span className="mr-3 overflow-hidden rounded-full h-11 w-11">
-          {advisorData?.photo ? (
+          {advisor?.photo ? (
             <img
-              src={advisorData.photo}
-              alt={advisorData.name || user?.name || "User"}
+              src={advisor.photo}
+              alt={advisor.name || user?.name || "User"}
               className="w-full h-full object-cover"
             />
           ) : (
@@ -48,7 +48,7 @@ export default function UserDropdown() {
         </span>
 
         <span className="block mr-1 font-medium text-theme-sm">
-          {advisorData?.name?.split(' ')[0] || user?.name?.split(' ')[0] || 'Guest'}
+          {advisor?.name?.split(' ')[0] || user?.name?.split(' ')[0] || 'Guest'}
         </span>
 
         <svg
@@ -78,7 +78,7 @@ export default function UserDropdown() {
       >
         <div>
           <span className="block font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-            {advisorData?.name || user?.name || 'Guest User'}
+            {advisor?.name || user?.name || 'Guest User'}
           </span>
           <span className="mt-0.5 block text-theme-xs text-gray-500 dark:text-gray-400">
             {user?.email || 'Not logged in'}

@@ -48,7 +48,7 @@ export const getAdvisorCardsData = async (params: FetchCardsParams): Promise<Tod
     const AUTH_TOKEN = Cookies.get("authToken");
 
     if (!AUTH_TOKEN) {
-      console.error("Auth token not found in cookies");
+      console.error("No auth token found in cookies, cannot make API call");
       return null;
     }
 
@@ -80,8 +80,63 @@ export const getAdvisorCardsData = async (params: FetchCardsParams): Promise<Tod
     });
 
     if (response.status === 401) {
-      handleUnauthorized();
-      return null;
+      // Check if we're using advisorId parameter - backend might not support it yet
+      if (params.selectedEmployee) {
+        console.warn("Backend doesn't support advisorId parameter yet, trying without advisorId");
+        // Build fallback URL without advisorId
+        let fallbackUrl = `${API_URL}/referrals/advisor-cards-data?`;
+        
+        if (params.selectedOption === 'custom') {
+          fallbackUrl += `timeframe=custom&startDate=${params.customDates.start}&endDate=${params.customDates.end}`;
+        } else {
+          fallbackUrl += `timeframe=${params.selectedOption || "monthly"}`;
+        }
+        
+        const type = params.appType.toLowerCase();
+        fallbackUrl += `&type=${type}`;
+        
+        try {
+          const fallbackResponse = await fetch(fallbackUrl, {
+            headers: {
+              Authorization: `Bearer ${AUTH_TOKEN}`,
+            },
+          });
+          
+          if (fallbackResponse.ok) {
+            const fallbackResult: AdvisorCardsDataResponse = await fallbackResponse.json();
+            console.log('✅ Got real advisor cards data without advisorId parameter');
+            
+            if (fallbackResult.success) {
+              const { data } = fallbackResult;
+              let totalAUM = 0;
+              let activePortfoliosOrSips = 0;
+              
+              if (type === 'fydaa') {
+                totalAUM = data.totalCurrentValue || 0;
+                activePortfoliosOrSips = data.investedSips || 0;
+              } else {
+                totalAUM = data.totalInvestment || 0;
+                activePortfoliosOrSips = data.investedPortfolios || 0;
+              }
+              
+              return {
+                totalClients: data.totalClients || 0,
+                totalAUM: Number(totalAUM.toFixed(2)),
+                activePortfoliosOrSips: activePortfoliosOrSips,
+              };
+            }
+          }
+          console.warn("Fallback API call failed");
+          return null;
+        } catch (fallbackError) {
+          console.warn("Fallback API call error:", fallbackError);
+          return null;
+        }
+      } else {
+        // Genuine auth issue - sign out
+        handleUnauthorized();
+        return null;
+      }
     }
 
     if (!response.ok) {

@@ -32,6 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Logout function (wrapped with useCallback)
   const handleLogout = useCallback(() => {
+    console.log("Logging out user");
     setUser(null);
     setToken(null);
     deleteCookie('authToken');
@@ -39,10 +40,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('advisorData');
     localStorage.removeItem("selectedDesignation");
     localStorage.removeItem("selectedEmployee");
-    router.push('/signin');
-  }, [router]);
+    if (typeof window !== 'undefined') {
+      window.location.href = '/signin';
+    }
+  }, []); // No dependencies to prevent re-creation
 
-  // Check if user is authenticated
+  // Check if user is authenticated - only on app mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setIsLoading(true);
@@ -53,9 +56,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const userInfoString = localStorage.getItem('userInfo');
           
-          // If we have a token but no userInfo, don't log out immediately
-          // This might happen during login before localStorage is set
           if (!userInfoString) {
+            console.warn('Token exists but no userInfo - might be during app initialization');
             setIsLoading(false);
             return;
           }
@@ -64,33 +66,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           // Validate userData has required properties
           if (!userData?.id || !userData?.role) {
+            console.error('Invalid user data, logging out');
             handleLogout();
             return;
           }
 
           setUser(userData);
           setToken(authToken);
-
-          // Redirect if on auth pages
-          if (pathname === '/signin' || pathname === '/signup') {
-            router.replace('/');
-          }
         } catch (error) {
-          console.error("Error parsing user data:", error);
+          console.error('Error parsing user data:', error);
           handleLogout();
         }
       } else {
-        // No token found - redirect to signin if on protected route
-        const publicPaths = ['/signin', '/signup', '/reset-password', '/forgotpassword'];
-        if (!publicPaths.includes(pathname) && pathname !== '/') {
-          router.replace('/signin');
-        }
+        // No token found - will be handled by protected routes
+        console.warn('No auth token found on app mount');
       }
 
       setIsLoading(false);
     }
-  }, [pathname, router, handleLogout]);
+  }, []); // Only run on mount, not on pathname changes
 
+  // Handle redirects when authenticated user visits auth pages
+  useEffect(() => {
+    if (token && (pathname === '/signin' || pathname === '/signup')) {
+      console.log('✅ AuthContext: Authenticated user on auth page, redirecting to dashboard');
+      router.replace('/');
+    }
+  }, [token, pathname, router]);
 
   // Login function
   const login = (newToken: string, userData: Employee) => {
