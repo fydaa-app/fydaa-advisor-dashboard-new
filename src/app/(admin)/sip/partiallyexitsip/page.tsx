@@ -37,7 +37,7 @@ async function fetchActiveSips(
     searchQuery: string = ""
 ): Promise<{ sips: Sip[]; error: string | null; totalItems?: number; itemsPerPage?: number; totalPages?: number; }> {
     try {
-        let url = `${process.env.NEXT_PUBLIC_API_URL}/referrals/partially-exit-sip-list-mf?page=${page}`;
+        let url = `${process.env.NEXT_PUBLIC_API_URL}/referrals/partially-exited-sip-list-mf?page=${page}`;
     
         if (selectedOption === 'custom') {
           url += `&timeframe=custom&startDate=${customDates.start}&endDate=${customDates.end}`;
@@ -62,7 +62,7 @@ async function fetchActiveSips(
         if (response.status === 401) {
             if (selectedEmployee) {
                 console.warn("Backend doesn't support advisorId parameter yet, trying without advisorId");
-                let fallbackUrl = `${process.env.NEXT_PUBLIC_API_URL}/referrals/partially-exit-sip-list-mf?page=${page}`;
+                let fallbackUrl = `${process.env.NEXT_PUBLIC_API_URL}/referrals/partially-exited-sip-list-mf?page=${page}`;
                 if (selectedOption === 'custom') {
                     fallbackUrl += `&timeframe=custom&startDate=${customDates.start}&endDate=${customDates.end}`;
                 } else {
