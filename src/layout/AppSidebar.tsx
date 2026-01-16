@@ -8,6 +8,7 @@ import { useSidebar } from "../context/SidebarContext";
 import {
   GridIcon,
   UserCircleIcon,
+  ChatIcon,
 } from "../icons/index";
 
 type NavItem = {
@@ -27,6 +28,11 @@ const navItems: NavItem[] = [
     icon: <UserCircleIcon />,
     name: "Clients",
     path: "/clients",
+  },
+  {
+    icon: <ChatIcon />,
+    name: "CRM",
+    path: "/advisor-crm",
   },
   {
     name: "Sign Out",
@@ -56,7 +62,7 @@ const AppSidebar: React.FC = () => {
   const router = useRouter(); // Initialize useRouter for navigation
 
   const filteredNavItems = navItems;
-  
+
 
   const handleSignOut = () => {
     // Delete cookies
@@ -85,18 +91,16 @@ const AppSidebar: React.FC = () => {
             nav.path && (
               <Link
                 href={nav.path}
-                className={`menu-item group ${
-                  pathname === nav.path
-                    ? "menu-item-active"
-                    : "menu-item-inactive"
-                }`}
+                className={`menu-item group ${pathname === nav.path
+                  ? "menu-item-active"
+                  : "menu-item-inactive"
+                  }`}
               >
                 <span
-                  className={`${
-                    pathname === nav.path
-                      ? "menu-item-icon-active"
-                      : "menu-item-icon-inactive"
-                  }`}
+                  className={`${pathname === nav.path
+                    ? "menu-item-icon-active"
+                    : "menu-item-icon-inactive"
+                    }`}
                 >
                   {nav.icon}
                 </span>
@@ -114,10 +118,9 @@ const AppSidebar: React.FC = () => {
   return (
     <aside
       className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200 
-        ${
-          isExpanded || isMobileOpen
-            ? "w-[290px]"
-            : isHovered
+        ${isExpanded || isMobileOpen
+          ? "w-[290px]"
+          : isHovered
             ? "w-[290px]"
             : "w-[90px]"
         }

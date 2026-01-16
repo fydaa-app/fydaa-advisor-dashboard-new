@@ -16,6 +16,8 @@ export interface AdvisorData {
   type: string;
   isActive: boolean;
   assigned_count: number;
+  agentId?: string;
+  smartfloId?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -69,6 +71,8 @@ const generateFallbackAdvisor = (advisorId: number): AdvisorData => {
     type: "advisor",
     isActive: true,
     assigned_count: 15,
+    agentId: undefined,
+    smartfloId: undefined,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };

@@ -12,6 +12,8 @@ export interface ClientData {
   total_investment: number;
   createdAt: string;
   hasSIP: number;
+  followUpDate?: string | null;
+  previousCallDate?: string | null;
 }
 
 interface AdvisorWiseUsersResponse {
@@ -28,6 +30,8 @@ interface AdvisorWiseUsersResponse {
       total_investment: number;
       createdAt: string;
       hasSIP: number;
+      followUpDate?: string | null;
+      previousCallDate?: string | null;
     }>;
     pagination: {
       total: number;
@@ -79,29 +83,31 @@ export const clientService = {
       timeframe?: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'till_date' | 'custom';
       startDate?: string;
       endDate?: string;
+      followUpTimeframe?: string;
     }
   ): Promise<PaginatedClientsResponse> {
     if (!API_URL) throw new Error('API_URL environment variable is not set');
 
     const headers = getHeaders();
 
-    // Build query parameters
-    const params = new URLSearchParams();
-    if (options?.appType) params.append('type', options.appType.toLowerCase());
-    if (options?.page) params.append('page', options.page.toString());
-    if (options?.limit) params.append('limit', options.limit.toString());
-    if (options?.timeframe) params.append('timeframe', options.timeframe);
-    if (options?.startDate) params.append('startDate', options.startDate);
-    if (options?.endDate) params.append('endDate', options.endDate);
+    // Build request body
+    const body: any = {};
+    if (options?.appType) body.type = options.appType.toLowerCase();
+    if (options?.page) body.page = options.page;
+    if (options?.limit) body.limit = options.limit;
+    if (options?.timeframe) body.timeframe = options.timeframe;
+    if (options?.startDate) body.startDate = options.startDate;
+    if (options?.endDate) body.endDate = options.endDate;
+    if (options?.followUpTimeframe) body.followUpTimeframe = options.followUpTimeframe;
 
-    const queryString = params.toString();
-    const listUrl = `${API_URL}/referrals/advisor-wise-users/${advisorId}${queryString ? `?${queryString}` : ''}`;
+    const listUrl = `${API_URL}/referrals/advisor-wise-users/${advisorId}`;
 
-    console.log('Fetching clients from:', listUrl);
+    console.log('Fetching clients from:', listUrl, 'with body:', body);
 
     const listResponse = await fetch(listUrl, { 
       method: 'POST',
-      headers 
+      headers,
+      body: JSON.stringify(body)
     });
 
     if (!listResponse.ok) {
@@ -121,6 +127,8 @@ export const clientService = {
       total_investment: user.total_investment,
       createdAt: user.createdAt,
       hasSIP: user.hasSIP,
+      followUpDate: user.followUpDate,
+      previousCallDate: user.previousCallDate,
     }));
 
     console.log(`Fetched ${clients.length} clients (page ${result.data.pagination.page}/${result.data.pagination.totalPages})`);
@@ -129,5 +137,51 @@ export const clientService = {
       clients,
       pagination: result.data.pagination,
     };
+  },
+
+  async updateClientFollowUpDate(
+    clientId: number,
+    followUpDate: string
+  ): Promise<{ success: boolean; message: string }> {
+    if (!API_URL) throw new Error('API_URL environment variable is not set');
+
+    const headers = getHeaders();
+    const updateUrl = `${API_URL}/referrals/update-follow-up-date/${clientId}`;
+
+    const response = await fetch(updateUrl, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ followUpDate }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to update follow-up date: ${response.status} ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    return result;
+  },
+
+  async updateClientPreviousCallDate(
+    clientId: number,
+    previousCallDate: string
+  ): Promise<{ success: boolean; message: string }> {
+    if (!API_URL) throw new Error('API_URL environment variable is not set');
+
+    const headers = getHeaders();
+    const updateUrl = `${API_URL}/referrals/update-previous-call-date/${clientId}`;
+
+    const response = await fetch(updateUrl, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ previousCallDate }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to update previous call date: ${response.status} ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    return result;
   },
 };
