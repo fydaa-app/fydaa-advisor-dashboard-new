@@ -83,29 +83,31 @@ export const clientService = {
       timeframe?: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'till_date' | 'custom';
       startDate?: string;
       endDate?: string;
+      followUpTimeframe?: string;
     }
   ): Promise<PaginatedClientsResponse> {
     if (!API_URL) throw new Error('API_URL environment variable is not set');
 
     const headers = getHeaders();
 
-    // Build query parameters
-    const params = new URLSearchParams();
-    if (options?.appType) params.append('type', options.appType.toLowerCase());
-    if (options?.page) params.append('page', options.page.toString());
-    if (options?.limit) params.append('limit', options.limit.toString());
-    if (options?.timeframe) params.append('timeframe', options.timeframe);
-    if (options?.startDate) params.append('startDate', options.startDate);
-    if (options?.endDate) params.append('endDate', options.endDate);
+    // Build request body
+    const body: any = {};
+    if (options?.appType) body.type = options.appType.toLowerCase();
+    if (options?.page) body.page = options.page;
+    if (options?.limit) body.limit = options.limit;
+    if (options?.timeframe) body.timeframe = options.timeframe;
+    if (options?.startDate) body.startDate = options.startDate;
+    if (options?.endDate) body.endDate = options.endDate;
+    if (options?.followUpTimeframe) body.followUpTimeframe = options.followUpTimeframe;
 
-    const queryString = params.toString();
-    const listUrl = `${API_URL}/referrals/advisor-wise-users/${advisorId}${queryString ? `?${queryString}` : ''}`;
+    const listUrl = `${API_URL}/referrals/advisor-wise-users/${advisorId}`;
 
-    console.log('Fetching clients from:', listUrl);
+    console.log('Fetching clients from:', listUrl, 'with body:', body);
 
     const listResponse = await fetch(listUrl, { 
       method: 'POST',
-      headers 
+      headers,
+      body: JSON.stringify(body)
     });
 
     if (!listResponse.ok) {

@@ -9,7 +9,8 @@ import {
     SalesIconGreen,
     SalesIconViolet,
     PhoneIcon,
-    CalenderIcon
+    CalenderIcon,
+    ChevronDownIcon
 } from '@/icons';
 import { useAuth } from "@/context/AuthContext";
 import { clientService, advisorService, smartfloService } from "@/services";
@@ -48,6 +49,7 @@ export default function AdvisorCRM() {
     const [totalPages, setTotalPages] = useState(1);
     const [total, setTotal] = useState(0);
     const [showAll, setShowAll] = useState(false); // Toggle for showing all clients
+    const [followUpFilter, setFollowUpFilter] = useState<string | undefined>(undefined); // Follow-up timeframe filter
     
     // Calendar modal states
     const [showCalendarModal, setShowCalendarModal] = useState(false);
@@ -170,6 +172,7 @@ export default function AdvisorCRM() {
                     timeframe: timeframeValue,
                     startDate: selectedOption === "custom" ? customDates.start : undefined,
                     endDate: selectedOption === "custom" ? customDates.end : undefined,
+                    followUpTimeframe: followUpFilter,
                 });
 
                 console.log('Fetched clients for advisor CRM:', response);
@@ -210,7 +213,7 @@ export default function AdvisorCRM() {
         // Fetch clients with pagination
         useEffect(() => {
             fetchClients();
-        }, [user?.id, page, showAll, appType, selectedOption, customDates]);
+        }, [user?.id, page, showAll, appType, selectedOption, customDates, followUpFilter]);
 
     const formatDate = (dateString: string | null) => {
         if (!dateString) return "—";
@@ -597,19 +600,45 @@ export default function AdvisorCRM() {
                             }
                         </p>
                     </div>
-                    <button
-                        onClick={() => {
-                            setShowAll(!showAll);
-                            setPage(1); // Reset to first page when toggling
-                        }}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                            showAll
-                                ? 'bg-brand-500 text-white hover:bg-brand-600'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
-                        }`}
-                    >
-                        {showAll ? 'Show All ✓' : 'Show All'}
-                    </button>
+                    <div className="flex items-center gap-3">
+                        {/* Due Follow Ups Dropdown */}
+                        <div className="relative">
+                            <select
+                                value={followUpFilter || ''}
+                                onChange={(e) => {
+                                    setFollowUpFilter(e.target.value || undefined);
+                                    setPage(1); // Reset to first page when filter changes
+                                }}
+                                className="appearance-none px-4 py-2 pr-10 rounded-lg text-sm font-medium border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="">Due Follow Ups</option>
+                                <option value="overdue">Overdue</option>
+                                <option value="today">Today</option>
+                                <option value="week">This Week</option>
+                                <option value="month">This Month</option>
+                                <option value="year">This Year</option>
+                                <option value="till_date">Till Date</option>
+                            </select>
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400">
+                                <ChevronDownIcon className="w-4 h-4" />
+                            </span>
+                        </div>
+
+                        {/* Show All Button */}
+                        <button
+                            onClick={() => {
+                                setShowAll(!showAll);
+                                setPage(1); // Reset to first page when toggling
+                            }}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                showAll
+                                    ? 'bg-brand-500 text-white hover:bg-brand-600'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+                            }`}
+                        >
+                            {showAll ? 'Show All ✓' : 'Show All'}
+                        </button>
+                    </div>
                 </div>
 
                 <div className="overflow-hidden">
