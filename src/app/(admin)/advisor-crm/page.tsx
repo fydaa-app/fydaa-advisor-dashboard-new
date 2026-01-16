@@ -1034,7 +1034,7 @@ export default function AdvisorCRM() {
                                                 Was the call successfully connected?
                                             </p>
                                             <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-                                                If yes, we'll update the "Previous Call" date to now.
+                                                If yes, we&apos;ll update the &quot;Previous Call&quot; date to now.
                                             </p>
                                             
                                             <div className="flex gap-3 justify-center">

@@ -1,6 +1,6 @@
 // Smartflo API Service for Click-to-Call functionality
 
-const SMARTFLO_BASE_URL = 'https://api-smartflo.tatateleservices.com/v1';
+const SMARTFLO_BASE_URL = `${process.env.NEXT_PUBLIC_VOIP_URL}/v1`;
 
 interface SmartfloAuthResponse {
   success: boolean;
