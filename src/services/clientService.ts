@@ -12,6 +12,8 @@ export interface ClientData {
   total_investment: number;
   createdAt: string;
   hasSIP: number;
+  followUpDate?: string | null;
+  previousCallDate?: string | null;
 }
 
 interface AdvisorWiseUsersResponse {
@@ -28,6 +30,8 @@ interface AdvisorWiseUsersResponse {
       total_investment: number;
       createdAt: string;
       hasSIP: number;
+      followUpDate?: string | null;
+      previousCallDate?: string | null;
     }>;
     pagination: {
       total: number;
@@ -121,6 +125,8 @@ export const clientService = {
       total_investment: user.total_investment,
       createdAt: user.createdAt,
       hasSIP: user.hasSIP,
+      followUpDate: user.followUpDate,
+      previousCallDate: user.previousCallDate,
     }));
 
     console.log(`Fetched ${clients.length} clients (page ${result.data.pagination.page}/${result.data.pagination.totalPages})`);
@@ -129,5 +135,51 @@ export const clientService = {
       clients,
       pagination: result.data.pagination,
     };
+  },
+
+  async updateClientFollowUpDate(
+    clientId: number,
+    followUpDate: string
+  ): Promise<{ success: boolean; message: string }> {
+    if (!API_URL) throw new Error('API_URL environment variable is not set');
+
+    const headers = getHeaders();
+    const updateUrl = `${API_URL}/referrals/update-follow-up-date/${clientId}`;
+
+    const response = await fetch(updateUrl, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ followUpDate }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to update follow-up date: ${response.status} ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    return result;
+  },
+
+  async updateClientPreviousCallDate(
+    clientId: number,
+    previousCallDate: string
+  ): Promise<{ success: boolean; message: string }> {
+    if (!API_URL) throw new Error('API_URL environment variable is not set');
+
+    const headers = getHeaders();
+    const updateUrl = `${API_URL}/referrals/update-previous-call-date/${clientId}`;
+
+    const response = await fetch(updateUrl, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ previousCallDate }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to update previous call date: ${response.status} ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    return result;
   },
 };

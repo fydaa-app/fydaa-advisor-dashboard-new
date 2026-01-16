@@ -38,6 +38,15 @@ export default function AdvisorProfessionalCard({ advisor, error }: Props) {
           </p>
         </div>
 
+        <div>
+          <p className="mb-2 text-sm leading-normal text-gray-500 dark:text-gray-400">
+            Agent ID
+          </p>
+          <p className="text-base font-medium text-gray-800 dark:text-white/90">
+            {advisor?.agentId ? `${advisor.agentId}` : "Not Provided"}
+          </p>
+        </div>
+
         <div className="lg:col-span-2">
           <p className="mb-2 text-sm leading-normal text-gray-500 dark:text-gray-400">
             Description

@@ -37,6 +37,9 @@ export {
   type ApiResponse as AdvisorApiResponse,
 } from './advisorService';
 
+// Smartflo services
+export { smartfloService } from './smartfloService';
+
 // Client services
 export {
   clientService,

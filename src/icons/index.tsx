@@ -62,6 +62,7 @@ import SalesIconViolet from "./sales-pruple.svg";
 import LeaderboardIcon from "./leaderboard.svg";
 import SettingIcon from "./setting.svg";
 import ShoppingCartIcon from "./shopping-cart.svg";
+import PhoneIcon from "./phone.svg";
 export {
   DownloadIcon,
   BellIcon,
@@ -127,4 +128,5 @@ export {
   LeaderboardIcon,
   SettingIcon,
   ShoppingCartIcon,
+  PhoneIcon,
 };
