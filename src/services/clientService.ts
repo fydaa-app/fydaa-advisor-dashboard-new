@@ -91,7 +91,15 @@ export const clientService = {
     const headers = getHeaders();
 
     // Build request body
-    const body: any = {};
+    const body: {
+      type?: string;
+      page?: number;
+      limit?: number;
+      timeframe?: string;
+      startDate?: string;
+      endDate?: string;
+      followUpTimeframe?: string;
+    } = {};
     if (options?.appType) body.type = options.appType.toLowerCase();
     if (options?.page) body.page = options.page;
     if (options?.limit) body.limit = options.limit;
