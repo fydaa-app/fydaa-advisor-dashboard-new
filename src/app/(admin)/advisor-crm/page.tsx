@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useRouter } from 'next/navigation';
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
 import {
     SalesIcon,
@@ -16,6 +17,7 @@ import { useAuth } from "@/context/AuthContext";
 import { clientService, advisorService, smartfloService } from "@/services";
 import Pagination from "@/components/tables/Pagination";
 import { useGlobalContext } from "@/context/GlobalState";
+import { useSmartfloToken } from "@/context/SmartfloTokenContext";
 
 // Client data interface
 interface ClientWithCalls {
@@ -40,8 +42,10 @@ interface CallStats {
 }
 
 export default function AdvisorCRM() {
+    const router = useRouter();
     const { user } = useAuth();
     const { appType, selectedOption, customDates } = useGlobalContext();
+    const { token: smartfloToken, isTokenValid, generateAndSetToken } = useSmartfloToken();
     const [clients, setClients] = useState<ClientWithCalls[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -51,6 +55,7 @@ export default function AdvisorCRM() {
     const [showAll, setShowAll] = useState(false); // Toggle for showing all clients
     const [followUpFilter, setFollowUpFilter] = useState<string | undefined>(undefined); // Follow-up timeframe filter
     const [searchQuery, setSearchQuery] = useState(''); // Search query for filtering clients
+    const [investmentStatus, setInvestmentStatus] = useState<string>('all'); // Investment status filter (active/inactive/all)
     
     // Calendar modal states
     const [showCalendarModal, setShowCalendarModal] = useState(false);
@@ -66,7 +71,6 @@ export default function AdvisorCRM() {
     const [callModalStep, setCallModalStep] = useState<'auth' | 'call' | 'success'>('auth');
     const [callEmail, setCallEmail] = useState('');
     const [callPassword, setCallPassword] = useState('');
-    const [callToken, setCallToken] = useState('');
     const [authError, setAuthError] = useState('');
     const [isAuthenticating, setIsAuthenticating] = useState(false);
     const [isCalling, setIsCalling] = useState(false);
@@ -134,6 +138,15 @@ export default function AdvisorCRM() {
         fetchAdvisorData();
     }, [user?.id]);
 
+    // Determine appType filter based on showAll toggle
+    const normalizedAppType = showAll 
+        ? undefined // Show all when toggled
+        : appType?.toLowerCase() === "savestment"
+        ? "savestment"
+        : appType?.toLowerCase() === "fydaa"
+        ? "fydaa"
+        : undefined;
+
     // Fetch clients function (moved outside useEffect so it can be reused)
     const fetchClients = async () => {
         if (!user?.id) {
@@ -146,14 +159,6 @@ export default function AdvisorCRM() {
         setError(null);
 
             try {
-                // Determine appType filter based on showAll toggle
-                const normalizedAppType = showAll 
-                    ? undefined // Show all when toggled
-                    : appType?.toLowerCase() === "savestment"
-                    ? "savestment"
-                    : appType?.toLowerCase() === "fydaa"
-                    ? "fydaa"
-                    : undefined;
 
                 // Determine timeframe filter
                 const timeframeValue = selectedOption as
@@ -174,6 +179,7 @@ export default function AdvisorCRM() {
                     startDate: selectedOption === "custom" ? customDates.start : undefined,
                     endDate: selectedOption === "custom" ? customDates.end : undefined,
                     followUpTimeframe: followUpFilter,
+                    investmentStatus: normalizedAppType === 'fydaa' ? investmentStatus : undefined,
                 });
 
                 console.log('Fetched clients for advisor CRM:', response);
@@ -221,11 +227,85 @@ export default function AdvisorCRM() {
                 setTotalPages(response.pagination.totalPages);
                 setTotal(response.pagination.total);
                 
-                // Update total clients stat
-                setStats(prev => ({
-                    ...prev,
-                    totalClients: response.pagination.total
+                // Calculate all client stats from ALL clients (not just current page)
+                // We need to fetch all clients for accurate stats
+                const allClientsResponse = await clientService.fetchAdvisorClients(user.id, {
+                    page: 1,
+                    limit: 10000, // Get all clients for stat calculation
+                    appType: normalizedAppType,
+                    timeframe: timeframeValue,
+                    startDate: selectedOption === "custom" ? customDates.start : undefined,
+                    endDate: selectedOption === "custom" ? customDates.end : undefined,
+                });
+
+                const allClients: ClientWithCalls[] = allClientsResponse.clients.map((client) => ({
+                    id: client.id,
+                    firstName: client.firstName,
+                    lastName: client.lastName,
+                    email: client.email,
+                    mobileNumber: client.mobileNumber,
+                    networth: client.total_investment || 0,
+                    onboardingDate: client.createdAt,
+                    followUpDate: client.followUpDate || null,
+                    previousCallDate: client.previousCallDate || null,
                 }));
+
+                // Calculate statistics
+                const now = new Date();
+                now.setHours(0, 0, 0, 0);
+                
+                const overdueClients: ClientWithCalls[] = [];
+                const completedClients: ClientWithCalls[] = [];
+                const scheduledClients: ClientWithCalls[] = [];
+                
+                allClients.forEach(client => {
+                    const hasFollowUp = !!client.followUpDate;
+                    const hasPrevCall = !!client.previousCallDate;
+                    
+                    if (!hasFollowUp && !hasPrevCall) return;
+                    
+                    if (hasFollowUp) {
+                        const followUp = new Date(client.followUpDate!);
+                        followUp.setHours(0, 0, 0, 0);
+                        const isInPast = followUp < now;
+                        
+                        if (hasPrevCall) {
+                            const prev = new Date(client.previousCallDate!);
+                            prev.setHours(0, 0, 0, 0);
+                            
+                            if (isInPast) {
+                                if (prev >= followUp) {
+                                    completedClients.push(client);
+                                } else {
+                                    overdueClients.push(client);
+                                }
+                            } else {
+                                scheduledClients.push(client);
+                            }
+                        } else {
+                            if (isInPast) {
+                                overdueClients.push(client);
+                            } else {
+                                scheduledClients.push(client);
+                            }
+                        }
+                    } else if (hasPrevCall) {
+                        completedClients.push(client);
+                    }
+                });
+                
+                const scheduledCount = scheduledClients.length;
+                const completedCount = completedClients.length;
+                const overdueCount = overdueClients.length;
+                
+                // Update stats
+                setStats({
+                    totalClients: response.pagination.total,
+                    scheduledCalls: scheduledCount,
+                    completedCalls: completedCount,
+                    missedCalls: 0, // Remove this card
+                    overdueCalls: overdueCount,
+                });
                 
             } catch (err) {
                 console.error('Error fetching clients:', err);
@@ -238,12 +318,12 @@ export default function AdvisorCRM() {
         // Fetch clients with pagination
         useEffect(() => {
             fetchClients();
-        }, [user?.id, page, showAll, appType, selectedOption, customDates, followUpFilter, searchQuery]);
+        }, [user?.id, page, showAll, appType, selectedOption, customDates, followUpFilter, searchQuery, investmentStatus]);
 
     // Reset to page 1 when search query or filters change
     useEffect(() => {
         setPage(1);
-    }, [searchQuery, followUpFilter, showAll, appType, selectedOption]);
+    }, [searchQuery, followUpFilter, showAll, appType, selectedOption, investmentStatus]);
 
 
 
@@ -280,6 +360,15 @@ export default function AdvisorCRM() {
             currency: 'INR',
             maximumFractionDigits: 0
         }).format(amount);
+    };
+
+    // View client profile
+    const handleViewClient = (clientId: number) => {
+        if (typeof window !== "undefined") {
+            sessionStorage.setItem("selectedClientId", clientId.toString());
+            sessionStorage.setItem("previousPage", "/advisor-crm");
+        }
+        router.push(`/clients/profile`);
     };
 
     // Calendar modal handlers
@@ -319,11 +408,8 @@ export default function AdvisorCRM() {
         if (!selectedClient || !selectedFollowUpDate) return;
 
         try {
-            // Combine date and time into a single datetime string in IST
-            // Create a date object in local timezone (IST)
-            const localDateTime = new Date(`${selectedFollowUpDate}T${selectedFollowUpTime}:00`);
-            // Convert to ISO string which will be in UTC
-            const dateTimeString = localDateTime.toISOString();
+            // Combine date and time into a single datetime string
+            const dateTimeString = `${selectedFollowUpDate}T${selectedFollowUpTime}:00`;
             
             // Call API to update followUpDate
             await clientService.updateClientFollowUpDate(selectedClient.id, dateTimeString);
@@ -338,11 +424,10 @@ export default function AdvisorCRM() {
             );
 
             handleCloseCalendar();
-            // Show success notification
-            // Follow-up date scheduled successfully (silent update)
+            alert('Follow-up date saved successfully!');
         } catch (error) {
             console.error('Error saving follow-up date:', error);
-            alert('Failed to save follow-up date. Please try again.');
+            alert(`Failed to save follow-up date: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     };
 
@@ -404,11 +489,15 @@ export default function AdvisorCRM() {
     // Call modal handlers
     const handleOpenCallModal = (client: ClientWithCalls) => {
         setSelectedClient(client);
-        setCallModalStep('auth');
+        // If we have a valid token, skip the auth step
+        if (smartfloToken && isTokenValid) {
+            setCallModalStep('call');
+        } else {
+            setCallModalStep('auth');
+        }
         // Don't reset callEmail - it's auto-filled from advisor profile
         setCallPassword('');
         setAuthError('');
-        setCallToken('');
         setShowCallModal(true);
     };
 
@@ -419,7 +508,6 @@ export default function AdvisorCRM() {
         // Don't reset callEmail - keep it for next time
         setCallPassword('');
         setAuthError('');
-        setCallToken('');
         setCallSuccessMessage('');
         setCallRefId('');
         setShowConnectionQuestion(false);
@@ -465,10 +553,9 @@ export default function AdvisorCRM() {
         setAuthError('');
 
         try {
-            // Use smartfloService to generate token with email and password
-            const token = await smartfloService.generateToken(callEmail, callPassword);
+            // Use the shared token context to generate and store token
+            await generateAndSetToken(callEmail, callPassword);
             
-            setCallToken(token);
             setCallModalStep('call');
             setIsAuthenticating(false);
         } catch (error) {
@@ -479,7 +566,7 @@ export default function AdvisorCRM() {
     };
 
     const handleMakeCall = async (useSmartfloId: boolean = false) => {
-        if (!selectedClient || !callToken) return;
+        if (!selectedClient || !smartfloToken) return;
 
         // Determine which ID to use
         const idToUse = useSmartfloId ? advisorSmartfloId : advisorAgentId;
@@ -495,7 +582,7 @@ export default function AdvisorCRM() {
 
         try {
             // Step 1: Fetch available numbers to get caller_id
-            const numbers = await smartfloService.fetchNumbers(callToken);
+            const numbers = await smartfloService.fetchNumbers(smartfloToken);
             
             if (!numbers || numbers.length === 0) {
                 throw new Error('No caller ID available. Please check Smartflo configuration.');
@@ -506,7 +593,7 @@ export default function AdvisorCRM() {
 
             // Step 2: Initiate the call
             const result = await smartfloService.initiateCall(
-                callToken,
+                smartfloToken,
                 idToUse,
                 selectedClient.mobileNumber,
                 callerId
@@ -591,20 +678,6 @@ export default function AdvisorCRM() {
                     </div>
                 </div>
 
-                {/* Missed Calls */}
-                <div className="col-span-4">
-                    <div className="box-total-sales h-full bg-white border border-gray-200 rounded-xl dark:bg-white/[0.03] dark:border-white/[0.05]">
-                        <SalesIconOrange />
-                        <h2 className="numbers-sale text-gray-900">{stats.missedCalls}</h2>
-                        <p className="total-sale-text">
-                            <span className="flex items-center gap-2">
-                                Missed Calls
-                            </span>
-                        </p>
-                        <span className="total-yes"></span>
-                    </div>
-                </div>
-
                 {/* Overdue Calls */}
                 <div className="col-span-4">
                     <div className="box-total-sales h-full bg-white border border-gray-200 rounded-xl dark:bg-white/[0.03] dark:border-white/[0.05]">
@@ -669,6 +742,24 @@ export default function AdvisorCRM() {
                                 <ChevronDownIcon className="w-4 h-4" />
                             </span>
                         </div>
+
+                        {/* Investment Status Filter - Only for Fydaa users */}
+                        {normalizedAppType === 'fydaa' && (
+                            <div className="relative">
+                                <select
+                                    value={investmentStatus}
+                                    onChange={(e) => setInvestmentStatus(e.target.value)}
+                                    className="appearance-none px-4 py-2 pr-10 rounded-lg text-sm font-medium border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="all">Investment Status</option>
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                </select>
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400">
+                                    <ChevronDownIcon className="w-4 h-4" />
+                                </span>
+                            </div>
+                        )}
 
                         {/* Show All Button */}
                         <button
@@ -749,6 +840,31 @@ export default function AdvisorCRM() {
                                                 </TableCell>
                                                 <TableCell className="px-4 py-3 text-center">
                                                     <div className="flex items-center justify-center gap-4">
+                                                        <button
+                                                            className="p-2 hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors rounded-full"
+                                                            title="View Client Profile"
+                                                            onClick={() => handleViewClient(client.id)}
+                                                        >
+                                                            <svg 
+                                                                className="w-6 h-6 text-gray-600 dark:text-gray-400" 
+                                                                fill="none" 
+                                                                stroke="currentColor" 
+                                                                viewBox="0 0 24 24"
+                                                            >
+                                                                <path 
+                                                                    strokeLinecap="round" 
+                                                                    strokeLinejoin="round" 
+                                                                    strokeWidth={2} 
+                                                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" 
+                                                                />
+                                                                <path 
+                                                                    strokeLinecap="round" 
+                                                                    strokeLinejoin="round" 
+                                                                    strokeWidth={2} 
+                                                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" 
+                                                                />
+                                                            </svg>
+                                                        </button>
                                                         <button
                                                             className="p-2 hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors rounded-full"
                                                             title="Make a call"

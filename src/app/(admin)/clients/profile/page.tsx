@@ -12,6 +12,15 @@ export default function ClientProfilePage() {
   const { clientData, loading, error } = useClientProfile();
 
   const fromUrl = useMemo(() => {
+    // Check sessionStorage first for previous page
+    if (typeof window !== "undefined") {
+      const previousPage = sessionStorage.getItem("previousPage");
+      if (previousPage) {
+        return previousPage;
+      }
+    }
+    
+    // Fallback to query param
     const from = searchParams.get("from");
     return from && from.startsWith("/") ? from : "/clients";
   }, [searchParams]);
@@ -68,7 +77,13 @@ export default function ClientProfilePage() {
       <div className="space-y-6">
         <div className="mb-4">
           <button 
-            onClick={() => router.push(fromUrl)}
+            onClick={() => {
+              // Clear the previousPage from sessionStorage after navigation
+              if (typeof window !== "undefined") {
+                sessionStorage.removeItem("previousPage");
+              }
+              router.push(fromUrl);
+            }}
             className="flex items-center text-blue-600 hover:text-blue-800"
           >
             <svg 
@@ -83,7 +98,7 @@ export default function ClientProfilePage() {
                 clipRule="evenodd" 
               />
             </svg>
-            Back to Clients
+            Back to {fromUrl === "/advisor-crm" ? "Advisor CRM" : "Clients"}
           </button>
         </div>
         <ComponentCard title="Client Details">

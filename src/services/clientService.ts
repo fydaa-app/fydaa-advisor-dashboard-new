@@ -84,6 +84,7 @@ export const clientService = {
       startDate?: string;
       endDate?: string;
       followUpTimeframe?: string;
+      investmentStatus?: string;
     }
   ): Promise<PaginatedClientsResponse> {
     if (!API_URL) throw new Error('API_URL environment variable is not set');
@@ -99,6 +100,7 @@ export const clientService = {
       startDate?: string;
       endDate?: string;
       followUpTimeframe?: string;
+      investmentStatus?: string;
     } = {};
     if (options?.appType) body.type = options.appType.toLowerCase();
     if (options?.page) body.page = options.page;
@@ -107,6 +109,7 @@ export const clientService = {
     if (options?.startDate) body.startDate = options.startDate;
     if (options?.endDate) body.endDate = options.endDate;
     if (options?.followUpTimeframe) body.followUpTimeframe = options.followUpTimeframe;
+    if (options?.investmentStatus) body.investmentStatus = options.investmentStatus;
 
     const listUrl = `${API_URL}/referrals/advisor-wise-users/${advisorId}`;
 
@@ -119,10 +122,18 @@ export const clientService = {
     });
 
     if (!listResponse.ok) {
+      const errorText = await listResponse.text();
+      console.error('API Error Response:', errorText);
       throw new Error(`Failed to fetch clients: ${listResponse.status} ${listResponse.statusText}`);
     }
 
     const result: AdvisorWiseUsersResponse = await listResponse.json();
+    console.log('API Response:', result);
+    
+    if (!result.data || !result.data.users) {
+      console.error('Invalid API response structure:', result);
+      throw new Error('Invalid API response: missing data.users');
+    }
 
     // Map users to ClientData format
     const clients: ClientData[] = result.data.users.map(user => ({
