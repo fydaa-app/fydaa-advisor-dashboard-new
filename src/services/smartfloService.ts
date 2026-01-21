@@ -70,6 +70,40 @@ export const generateSmartfloToken = async (
 };
 
 /**
+ * Refresh SmartFlo authentication token
+ */
+export const refreshSmartfloToken = async (currentToken: string): Promise<string> => {
+  try {
+    const response = await fetch(`${SMARTFLO_BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: {
+        'Authorization': currentToken,
+        'accept': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = errorData.message || errorData.error || response.statusText;
+      throw new Error(`Token refresh failed: ${errorMessage}`);
+    }
+
+    const data = await response.json();
+    
+    // Check if API returned success: false
+    if (data.success === false) {
+      throw new Error(`Failed to refresh token: ${data.message || 'Token refresh failed'}`);
+    }
+    
+    // Return the new token
+    return data.access_token || data.token || data;
+  } catch (error) {
+    console.error('Error refreshing SmartFlo token:', error);
+    throw error;
+  }
+};
+
+/**
  * Fetch available phone numbers (caller IDs)
  */
 export const fetchSmartfloNumbers = async (
@@ -181,9 +215,180 @@ export const makeSmartfloCall = async (
   }
 };
 
+interface CallRecord {
+  id?: string;
+  from?: string;
+  to?: string;
+  duration?: number;
+  status?: string;
+  timestamp?: string;
+  direction?: string;
+  [key: string]: unknown;
+}
+
+interface CallRecordsResponse {
+  count: number;
+  limit: number;
+  size: number;
+  page: number;
+  results: CallRecord[];
+}
+
+/**
+ * Fetch call records from Smartflo API
+ */
+export const fetchCallRecords = async (
+  token: string,
+  page: number = 1,
+  limit: number = 10,
+  callType?: string,
+  direction?: string
+): Promise<CallRecordsResponse> => {
+  try {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+    });
+    
+    if (callType) params.append('call_type', callType);
+    if (direction) params.append('direction', direction);
+
+    const response = await fetch(`${SMARTFLO_BASE_URL}/call/records?${params.toString()}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': token,
+        'accept': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch call records: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    
+    // Check if API returned success: false (invalid/expired token)
+    if (data.success === false) {
+      throw new Error(`Invalid token: ${data.message || 'Token is invalid or expired'}`);
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error fetching call records:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch total calls count
+ */
+export const fetchTotalCalls = async (token: string): Promise<number> => {
+  try {
+    const data = await fetchCallRecords(token, 1, 1);
+    return data.count;
+  } catch (error) {
+    console.error('Error fetching total calls:', error);
+    // Re-throw error with proper message if it's a token issue
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes('401') || 
+        errorMessage.includes('Unauthorized') || 
+        errorMessage.includes('Invalid token')) {
+      throw new Error('Invalid token provided');
+    }
+    throw error;
+  }
+};
+
+/**
+ * Fetch total connected calls (call_type=c, direction=outbound)
+ */
+export const fetchConnectedCalls = async (token: string): Promise<number> => {
+  try {
+    const data = await fetchCallRecords(token, 1, 1, 'c', 'outbound');
+    return data.count;
+  } catch (error) {
+    console.error('Error fetching connected calls:', error);
+    // Re-throw error to propagate token validation failures
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes('401') || 
+        errorMessage.includes('Unauthorized') || 
+        errorMessage.includes('Invalid token')) {
+      throw new Error('Invalid token provided');
+    }
+    throw error;
+  }
+};
+
+/**
+ * Fetch unanswered calls (call_type=m, direction=outbound)
+ */
+export const fetchUnansweredCalls = async (token: string): Promise<number> => {
+  try {
+    const data = await fetchCallRecords(token, 1, 1, 'm', 'outbound');
+    return data.count;
+  } catch (error) {
+    console.error('Error fetching unanswered calls:', error);
+    // Re-throw error to propagate token validation failures
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes('401') || 
+        errorMessage.includes('Unauthorized') || 
+        errorMessage.includes('Invalid token')) {
+      throw new Error('Invalid token provided');
+    }
+    throw error;
+  }
+};
+
+/**
+ * Fetch incoming calls (call_type=c, direction=inbound)
+ */
+export const fetchIncomingCalls = async (token: string): Promise<number> => {
+  try {
+    const data = await fetchCallRecords(token, 1, 1, 'c', 'inbound');
+    return data.count;
+  } catch (error) {
+    console.error('Error fetching incoming calls:', error);
+    // Re-throw error to propagate token validation failures
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes('401') || 
+        errorMessage.includes('Unauthorized') || 
+        errorMessage.includes('Invalid token')) {
+      throw new Error('Invalid token provided');
+    }
+    throw error;
+  }
+};
+
+/**
+ * Fetch missed calls (call_type=m, direction=inbound)
+ */
+export const fetchMissedCalls = async (token: string): Promise<number> => {
+  try {
+    const data = await fetchCallRecords(token, 1, 1, 'm', 'inbound');
+    return data.count;
+  } catch (error) {
+    console.error('Error fetching missed calls:', error);
+    // Re-throw error to propagate token validation failures
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes('401') || 
+        errorMessage.includes('Unauthorized') || 
+        errorMessage.includes('Invalid token')) {
+      throw new Error('Invalid token provided');
+    }
+    throw error;
+  }
+};
+
 export const smartfloService = {
   generateToken: generateSmartfloToken,
+  refreshToken: refreshSmartfloToken,
   fetchNumbers: fetchSmartfloNumbers,
   initiateCall: initiateClickToCall,
   makeCall: makeSmartfloCall,
+  fetchCallRecords: fetchCallRecords,
+  fetchTotalCalls: fetchTotalCalls,
+  fetchConnectedCalls: fetchConnectedCalls,
+  fetchUnansweredCalls: fetchUnansweredCalls,
+  fetchIncomingCalls: fetchIncomingCalls,
+  fetchMissedCalls: fetchMissedCalls,
 };

@@ -48,6 +48,7 @@ export default function AdvisorClientsTable({ rows, error }: Props) {
     if (typeof window !== "undefined") {
       sessionStorage.setItem("selectedClientId", clientId.toString());
       sessionStorage.setItem("clientsSkipNextPageReset", "true");
+      sessionStorage.setItem("previousPage", "/clients");
     }
 
     // Build "from" URL that captures current clients list state (including pagination & search)
