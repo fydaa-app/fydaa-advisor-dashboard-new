@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
 import {
     SalesIcon,
@@ -43,19 +43,80 @@ interface CallStats {
 
 export default function AdvisorCRM() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { user } = useAuth();
     const { appType, selectedOption, customDates } = useGlobalContext();
     const { token: smartfloToken, isTokenValid, generateAndSetToken } = useSmartfloToken();
     const [clients, setClients] = useState<ClientWithCalls[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [page, setPage] = useState(1);
+    // Initialize page from URL query params or default to 1
+    const [page, setPage] = useState(() => {
+        const pageParam = searchParams.get('page');
+        return pageParam ? parseInt(pageParam, 10) : 1;
+    });
     const [totalPages, setTotalPages] = useState(1);
     const [total, setTotal] = useState(0);
-    const [showAll, setShowAll] = useState(false); // Toggle for showing all clients
+
+    // Sync page, showAll, and investmentStatus state with URL when navigating back
+    useEffect(() => {
+        const pageParam = searchParams.get('page');
+        const pageFromUrl = pageParam ? parseInt(pageParam, 10) : 1;
+        const showAllParam = searchParams.get('showAll');
+        const showAllFromUrl = showAllParam === 'true';
+        const investmentStatusParam = searchParams.get('investmentStatus');
+        const investmentStatusFromUrl = investmentStatusParam || 'all';
+        
+        // If URL has a page param, we're navigating back - skip filter reset
+        if (pageParam) {
+            skipFilterReset.current = true;
+        }
+        
+        if (pageFromUrl !== page) {
+            setPage(pageFromUrl);
+        }
+        
+        if (showAllFromUrl !== showAll) {
+            setShowAll(showAllFromUrl);
+        }
+        
+        if (investmentStatusFromUrl !== investmentStatus) {
+            setInvestmentStatus(investmentStatusFromUrl);
+        }
+    }, [searchParams]);
+
+    // Helper function to update page and URL
+    const updatePage = (newPage: number) => {
+        setPage(newPage);
+        // Update URL without full page reload, preserving other params like showAll and investmentStatus
+        const url = new URL(window.location.href);
+        url.searchParams.set('page', newPage.toString());
+        // Preserve showAll if it's true
+        if (showAll) {
+            url.searchParams.set('showAll', 'true');
+        } else {
+            url.searchParams.delete('showAll');
+        }
+        // Preserve investmentStatus if it's not 'all'
+        if (investmentStatus && investmentStatus !== 'all') {
+            url.searchParams.set('investmentStatus', investmentStatus);
+        } else {
+            url.searchParams.delete('investmentStatus');
+        }
+        window.history.pushState({}, '', url.toString());
+    };
+    // Initialize showAll from URL query params or default to false
+    const [showAll, setShowAll] = useState(() => {
+        const showAllParam = searchParams.get('showAll');
+        return showAllParam === 'true';
+    });
     const [followUpFilter, setFollowUpFilter] = useState<string | undefined>(undefined); // Follow-up timeframe filter
     const [searchQuery, setSearchQuery] = useState(''); // Search query for filtering clients
-    const [investmentStatus, setInvestmentStatus] = useState<string>('all'); // Investment status filter (active/inactive/all)
+    // Initialize investmentStatus from URL query params or default to 'all'
+    const [investmentStatus, setInvestmentStatus] = useState<string>(() => {
+        const investmentStatusParam = searchParams.get('investmentStatus');
+        return investmentStatusParam || 'all';
+    });
     
     // Calendar modal states
     const [showCalendarModal, setShowCalendarModal] = useState(false);
@@ -80,6 +141,9 @@ export default function AdvisorCRM() {
     const [callRefId, setCallRefId] = useState('');
     const [isUpdatingCallStatus, setIsUpdatingCallStatus] = useState(false);
     const [showConnectionQuestion, setShowConnectionQuestion] = useState(false);
+    
+    // Track if we should skip the filter reset (when navigating back with a page param in URL)
+    const skipFilterReset = useRef(false);
     
     const pageSize = 10; // Number of items per page
     
@@ -320,9 +384,13 @@ export default function AdvisorCRM() {
             fetchClients();
         }, [user?.id, page, showAll, appType, selectedOption, customDates, followUpFilter, searchQuery, investmentStatus]);
 
-    // Reset to page 1 when search query or filters change
+    // Reset to page 1 when search query or filters change (but skip when navigating back with URL params)
     useEffect(() => {
-        setPage(1);
+        if (skipFilterReset.current) {
+            skipFilterReset.current = false;
+            return;
+        }
+        updatePage(1);
     }, [searchQuery, followUpFilter, showAll, appType, selectedOption, investmentStatus]);
 
 
@@ -364,11 +432,26 @@ export default function AdvisorCRM() {
 
     // View client profile
     const handleViewClient = (clientId: number) => {
+        // Build the current URL with page number, showAll state, and investment status
+        const params = new URLSearchParams();
+        params.set('page', page.toString());
+        if (showAll) {
+            params.set('showAll', 'true');
+        }
+        if (investmentStatus && investmentStatus !== 'all') {
+            params.set('investmentStatus', investmentStatus);
+        }
+        const fromUrl = `/advisor-crm?${params.toString()}`;
+        
         if (typeof window !== "undefined") {
             sessionStorage.setItem("selectedClientId", clientId.toString());
-            sessionStorage.setItem("previousPage", "/advisor-crm");
+            // Save the current page URL with all query params
+            sessionStorage.setItem("previousPage", fromUrl);
         }
-        router.push(`/clients/profile`);
+        
+        // Navigate to profile with 'from' parameter in URL
+        const profileUrl = `/clients/profile?from=${encodeURIComponent(fromUrl)}`;
+        router.push(profileUrl);
     };
 
     // Calendar modal handlers
@@ -726,7 +809,7 @@ export default function AdvisorCRM() {
                                 value={followUpFilter || ''}
                                 onChange={(e) => {
                                     setFollowUpFilter(e.target.value || undefined);
-                                    setPage(1); // Reset to first page when filter changes
+                                    updatePage(1); // Reset to first page when filter changes
                                 }}
                                 className="appearance-none px-4 py-2 pr-10 rounded-lg text-sm font-medium border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
@@ -748,7 +831,26 @@ export default function AdvisorCRM() {
                             <div className="relative">
                                 <select
                                     value={investmentStatus}
-                                    onChange={(e) => setInvestmentStatus(e.target.value)}
+                                    onChange={(e) => {
+                                        const newStatus = e.target.value;
+                                        setInvestmentStatus(newStatus);
+                                        // Update URL with new investment status
+                                        const url = new URL(window.location.href);
+                                        url.searchParams.set('page', '1'); // Reset to page 1
+                                        if (newStatus !== 'all') {
+                                            url.searchParams.set('investmentStatus', newStatus);
+                                        } else {
+                                            url.searchParams.delete('investmentStatus');
+                                        }
+                                        // Preserve showAll
+                                        if (showAll) {
+                                            url.searchParams.set('showAll', 'true');
+                                        } else {
+                                            url.searchParams.delete('showAll');
+                                        }
+                                        window.history.pushState({}, '', url.toString());
+                                        setPage(1);
+                                    }}
                                     className="appearance-none px-4 py-2 pr-10 rounded-lg text-sm font-medium border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
                                     <option value="all">Investment Status</option>
@@ -764,7 +866,17 @@ export default function AdvisorCRM() {
                         {/* Show All Button */}
                         <button
                             onClick={() => {
-                                setShowAll(!showAll);
+                                const newShowAll = !showAll;
+                                setShowAll(newShowAll);
+                                // Update URL with new showAll state
+                                const url = new URL(window.location.href);
+                                url.searchParams.set('page', '1');
+                                if (newShowAll) {
+                                    url.searchParams.set('showAll', 'true');
+                                } else {
+                                    url.searchParams.delete('showAll');
+                                }
+                                window.history.pushState({}, '', url.toString());
                                 setPage(1); // Reset to first page when toggling
                             }}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -900,7 +1012,7 @@ export default function AdvisorCRM() {
                         <Pagination
                             currentPage={page}
                             totalPages={totalPages}
-                            onPageChange={setPage}
+                            onPageChange={updatePage}
                         />
                     </div>
                 )}
