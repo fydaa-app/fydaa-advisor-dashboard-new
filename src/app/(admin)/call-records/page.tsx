@@ -6,12 +6,13 @@ import CallRecordsTable from "@/components/tables/CallRecordsTable";
 import { smartfloService, advisorService } from "@/services";
 import { useAuth } from "@/context/AuthContext";
 import { useSmartfloToken } from "@/context/SmartfloTokenContext";
-import {
-    SalesIcon,
-    SalesIconGreen,
-    SalesIconOrange,
-    SalesIconViolet,
-} from '@/icons';
+import Select from "@/components/form/Select";
+import { ChevronDownIcon, CalenderIcon } from "@/icons";
+import { useModal } from "@/hooks/useModal";
+import { Modal } from "@/components/ui/modal";
+import Label from "@/components/form/Label";
+import Input from "@/components/form/input/InputField";
+import Button from "@/components/ui/button/Button";
 
 interface CallStats {
     totalCalls: number;
@@ -65,6 +66,111 @@ export default function CallRecordsPage() {
     // Filter state for card clicks
     const [selectedFilter, setSelectedFilter] = useState<string>('all');
 
+    // Date filter state
+    const [dateFilter, setDateFilter] = useState<string>('till_date');
+    const [fromDate, setFromDate] = useState<string | undefined>(undefined);
+    const [toDate, setToDate] = useState<string | undefined>(undefined);
+    
+    // Custom date modal state
+    const { isOpen, openModal, closeModal } = useModal();
+    const [customStartDate, setCustomStartDate] = useState("");
+    const [customEndDate, setCustomEndDate] = useState("");
+    const [dateError, setDateError] = useState("");
+
+    // Helper function to get date ranges
+    const getDateRange = (filter: string) => {
+        const now = new Date();
+        let from: Date;
+        const to: Date = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+
+        switch (filter) {
+            case 'daily':
+                // Current day
+                from = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+                break;
+            case 'weekly':
+                // Current calendar week (Monday to Sunday)
+                const day = now.getDay();
+                const diff = now.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is Sunday
+                from = new Date(now.getFullYear(), now.getMonth(), diff, 0, 0, 0);
+                break;
+            case 'monthly':
+                // Current calendar month
+                from = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+                break;
+            case 'last30':
+                // Last 30 days
+                from = new Date(now);
+                from.setDate(from.getDate() - 30);
+                from.setHours(0, 0, 0, 0);
+                break;
+            case 'custom':
+                // Custom date range - handled separately
+                if (customStartDate && customEndDate) {
+                    const startDate = new Date(customStartDate);
+                    startDate.setHours(0, 0, 0, 0);
+                    const endDate = new Date(customEndDate);
+                    endDate.setHours(23, 59, 59, 999);
+                    return {
+                        from: startDate.toISOString().slice(0, 19).replace('T', ' '),
+                        to: endDate.toISOString().slice(0, 19).replace('T', ' ')
+                    };
+                }
+                return { from: undefined, to: undefined };
+            case 'till_date':
+            default:
+                // No filter
+                return { from: undefined, to: undefined };
+        }
+
+        return {
+            from: from.toISOString().slice(0, 19).replace('T', ' '),
+            to: to.toISOString().slice(0, 19).replace('T', ' ')
+        };
+    };
+
+    // Handle custom date submission
+    const handleSaveCustomDates = (e: React.FormEvent) => {
+        e.preventDefault();
+        setDateError("");
+        
+        if (!customStartDate || !customEndDate) {
+            setDateError("Both start and end dates are required");
+            return;
+        }
+
+        const start = new Date(customStartDate);
+        const end = new Date(customEndDate);
+
+        // Validate start date is before end date
+        if (start > end) {
+            setDateError("Start date must be before end date");
+            return;
+        }
+
+        // Calculate difference in days
+        const diffTime = Math.abs(end.getTime() - start.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        // Validate interval is not more than 30 days
+        if (diffDays > 30) {
+            setDateError("Date range cannot exceed 30 days");
+            return;
+        }
+
+        // If all validations pass
+        setDateFilter('custom');
+        setDateError("");
+        closeModal();
+    };
+
+    // Update date range when filter changes
+    useEffect(() => {
+        const range = getDateRange(dateFilter);
+        setFromDate(range.from);
+        setToDate(range.to);
+    }, [dateFilter, customStartDate, customEndDate]);
+
     // Get page title based on selected filter
     const getPageTitle = () => {
         switch (selectedFilter) {
@@ -80,6 +186,33 @@ export default function CallRecordsPage() {
                 return 'Call Records - Missed Calls';
             default:
                 return 'Call Records';
+        }
+    };
+
+    // Get page description based on date filter
+    const getPageDescription = () => {
+        switch (dateFilter) {
+            case 'daily':
+                return "View and manage today's SmartFlo call records";
+            case 'weekly':
+                return "View and manage this week's SmartFlo call records";
+            case 'monthly':
+                return "View and manage this month's SmartFlo call records";
+            case 'last30':
+                return "View and manage SmartFlo call records from the last 30 days";
+            case 'custom':
+                if (customStartDate && customEndDate) {
+                    const start = new Date(customStartDate);
+                    const end = new Date(customEndDate);
+                    const formatDate = (date: Date) => {
+                        return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                    };
+                    return `View and manage SmartFlo call records from ${formatDate(start)} to ${formatDate(end)}`;
+                }
+                return "View and manage all SmartFlo call records";
+            case 'till_date':
+            default:
+                return "View and manage all SmartFlo call records ";
         }
     };
 
@@ -103,11 +236,11 @@ export default function CallRecordsPage() {
             
             try {
                 const [total, connected, unanswered, incoming, missed] = await Promise.all([
-                    smartfloService.fetchTotalCalls(generatedToken),
-                    smartfloService.fetchConnectedCalls(generatedToken),
-                    smartfloService.fetchUnansweredCalls(generatedToken),
-                    smartfloService.fetchIncomingCalls(generatedToken),
-                    smartfloService.fetchMissedCalls(generatedToken),
+                    smartfloService.fetchTotalCalls(generatedToken, fromDate, toDate),
+                    smartfloService.fetchConnectedCalls(generatedToken, fromDate, toDate),
+                    smartfloService.fetchUnansweredCalls(generatedToken, fromDate, toDate),
+                    smartfloService.fetchIncomingCalls(generatedToken, fromDate, toDate),
+                    smartfloService.fetchMissedCalls(generatedToken, fromDate, toDate),
                 ]);
 
                 setStats({
@@ -134,7 +267,7 @@ export default function CallRecordsPage() {
         };
 
         validateAndFetchStats();
-    }, [generatedToken, isTokenValid]);
+    }, [generatedToken, isTokenValid, fromDate, toDate]);
 
     const handleGenerateToken = async () => {
         if (!tokenEmail || !tokenPassword) {
@@ -163,9 +296,39 @@ export default function CallRecordsPage() {
         <div className="flex flex-col gap-6">
             {/* Page Header */}
             <div className="bg-white border border-gray-200 rounded-xl p-6 dark:border-white/[0.05] dark:bg-white/[0.03] shadow-theme-xs">
-                <div>
-                    <h1 className="text-3xl font-bold text-black dark:text-white mb-2">{getPageTitle()}</h1>
-                    <p className="text-gray-600 dark:text-gray-400">View and manage all SmartFlo call records</p>
+                <div className="flex items-start justify-between gap-4">
+                    <div>
+                        <h1 className="text-3xl font-bold text-black dark:text-white mb-2">{getPageTitle()}</h1>
+                        <p className="text-gray-600 dark:text-gray-400">{getPageDescription()}</p>
+                    </div>
+                    
+                    {/* Date Filter */}
+                    <div className="relative min-w-[180px]">
+                        <Select
+                            options={[
+                                { value: "daily", label: "Daily" },
+                                { value: "weekly", label: "Weekly" },
+                                { value: "monthly", label: "Monthly" },
+                                { value: "last30", label: "Last 30 Days" },
+                                { value: "custom", label: "Custom" },
+                                { value: "till_date", label: "Till Date" }
+                            ]}
+                            placeholder="Date Filter"
+                            value={dateFilter === 'till_date' ? null : dateFilter}
+                            onChange={(option) => {
+                                const newValue = option?.value || 'till_date';
+                                if (newValue === 'custom') {
+                                    setDateError(""); // Clear any previous errors
+                                    openModal();
+                                } else {
+                                    setDateFilter(newValue);
+                                }
+                            }}
+                        />
+                        <span className="absolute text-gray-500 -translate-y-1/2 pointer-events-none right-3 top-1/2 dark:text-gray-400">
+                            <ChevronDownIcon />
+                        </span>
+                    </div>
                 </div>
             </div>
 
@@ -178,14 +341,14 @@ export default function CallRecordsPage() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                             </svg>
                             <span className="text-sm font-medium text-amber-800 dark:text-amber-400">
-                                Token Inactive - {tokenExpired ? 'Token expired, please authenticate' : 'Please authenticate'} to view call records
+                                Smartflo Inactive - {tokenExpired ? 'Token expired, please login' : 'Please login'} to view call records
                             </span>
                         </div>
                         <button
                             onClick={() => setShowTokenModal(true)}
                             className="px-3 py-1 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors text-sm font-medium"
                         >
-                            Authenticate
+                            Smartflo Login 
                         </button>
                     </div>
                 </div>
@@ -210,7 +373,10 @@ export default function CallRecordsPage() {
                         className={`box-total-sales h-full bg-white border border-gray-200 rounded-xl dark:bg-white/[0.03] dark:border-white/[0.05] cursor-pointer transition-transform duration-200 hover:scale-105 ${selectedFilter === 'all' ? 'ring-2 ring-violet-500 dark:ring-violet-400' : ''}`}
                         onClick={() => setSelectedFilter('all')}
                     >
-                        <SalesIconViolet />
+                        <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="20" cy="20" r="20" fill="#8B5CF6"/>
+                        <path d="M26.9 25.1C25.7 25.1 24.6 24.9 23.5 24.5C23.2 24.4 22.8 24.5 22.6 24.7L20.8 26.5C18 25.1 15.9 23 14.5 20.2L16.3 18.4C16.6 18.1 16.7 17.7 16.6 17.4C16.2 16.3 16 15.2 16 14C16 13.5 15.6 13 15.1 13H13C12.4 13 12 13.4 12 14C12 22.3 18.7 29 27 29C27.6 29 28 28.6 28 28V25.9C28 25.4 27.5 25.1 26.9 25.1Z" fill="white"/>
+                        </svg>
                         <h2 className="numbers-sale text-gray-900">
                             {isLoadingStats ? '...' : stats.totalCalls}
                         </h2>
@@ -223,19 +389,22 @@ export default function CallRecordsPage() {
                     </div>
                 </div>
 
-                {/* Unanswered Calls */}
+                {/* Missed Calls */}
                 <div className="col-span-4">
                     <div 
-                        className={`box-total-sales h-full bg-white border border-gray-200 rounded-xl dark:bg-white/[0.03] dark:border-white/[0.05] cursor-pointer transition-transform duration-200 hover:scale-105 ${selectedFilter === 'unanswered' ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''}`}
-                        onClick={() => setSelectedFilter('unanswered')}
+                        className={`box-total-sales h-full bg-white border border-gray-200 rounded-xl dark:bg-white/[0.03] dark:border-white/[0.05] cursor-pointer transition-transform duration-200 hover:scale-105 ${selectedFilter === 'missed' ? 'ring-2 ring-red-500 dark:ring-red-400' : ''}`}
+                        onClick={() => setSelectedFilter('missed')}
                     >
-                        <SalesIcon />
+                        <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="20" cy="20" r="20" fill="#FA5A7D"/>
+                        <path d="M26.9 25.1C25.7 25.1 24.6 24.9 23.5 24.5C23.2 24.4 22.8 24.5 22.6 24.7L20.8 26.5C18 25.1 15.9 23 14.5 20.2L16.3 18.4C16.6 18.1 16.7 17.7 16.6 17.4C16.2 16.3 16 15.2 16 14C16 13.5 15.6 13 15.1 13H13C12.4 13 12 13.4 12 14C12 22.3 18.7 29 27 29C27.6 29 28 28.6 28 28V25.9C28 25.4 27.5 25.1 26.9 25.1Z" fill="white"/>
+                        </svg>
                         <h2 className="numbers-sale text-gray-900">
-                            {isLoadingStats ? '...' : stats.unansweredCalls}
+                            {isLoadingStats ? '...' : stats.missedCalls}
                         </h2>
                         <p className="total-sale-text">
                             <span className="flex items-center gap-2">
-                                Unanswered Calls
+                                Missed Calls
                             </span>
                         </p>
                         <span className="total-yes"></span>
@@ -248,7 +417,10 @@ export default function CallRecordsPage() {
                         className={`box-total-sales h-full bg-white border border-gray-200 rounded-xl dark:bg-white/[0.03] dark:border-white/[0.05] cursor-pointer transition-transform duration-200 hover:scale-105 ${selectedFilter === 'connected' ? 'ring-2 ring-green-500 dark:ring-green-400' : ''}`}
                         onClick={() => setSelectedFilter('connected')}
                     >
-                        <SalesIconGreen />
+                        <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="20" cy="20" r="20" fill="#22C55E"/>
+                        <path d="M26.9 25.1C25.7 25.1 24.6 24.9 23.5 24.5C23.2 24.4 22.8 24.5 22.6 24.7L20.8 26.5C18 25.1 15.9 23 14.5 20.2L16.3 18.4C16.6 18.1 16.7 17.7 16.6 17.4C16.2 16.3 16 15.2 16 14C16 13.5 15.6 13 15.1 13H13C12.4 13 12 13.4 12 14C12 22.3 18.7 29 27 29C27.6 29 28 28.6 28 28V25.9C28 25.4 27.5 25.1 26.9 25.1Z" fill="white"/>
+                        </svg>
                         <h2 className="numbers-sale text-gray-900">
                             {isLoadingStats ? '...' : stats.connectedCalls}
                         </h2>
@@ -261,13 +433,38 @@ export default function CallRecordsPage() {
                     </div>
                 </div>
 
+                {/* Unanswered Calls */}
+                <div className="col-span-4">
+                    <div 
+                        className={`box-total-sales h-full bg-white border border-gray-200 rounded-xl dark:bg-white/[0.03] dark:border-white/[0.05] cursor-pointer transition-transform duration-200 hover:scale-105 ${selectedFilter === 'unanswered' ? 'ring-2 ring-orange-500 dark:ring-orange-400' : ''}`}
+                        onClick={() => setSelectedFilter('unanswered')}
+                    >
+                        <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="20" cy="20" r="20" fill="#FB923C"/>
+                        <path d="M26.9 25.1C25.7 25.1 24.6 24.9 23.5 24.5C23.2 24.4 22.8 24.5 22.6 24.7L20.8 26.5C18 25.1 15.9 23 14.5 20.2L16.3 18.4C16.6 18.1 16.7 17.7 16.6 17.4C16.2 16.3 16 15.2 16 14C16 13.5 15.6 13 15.1 13H13C12.4 13 12 13.4 12 14C12 22.3 18.7 29 27 29C27.6 29 28 28.6 28 28V25.9C28 25.4 27.5 25.1 26.9 25.1Z" fill="white"/>
+                        </svg>
+                        <h2 className="numbers-sale text-gray-900">
+                            {isLoadingStats ? '...' : stats.unansweredCalls}
+                        </h2>
+                        <p className="total-sale-text">
+                            <span className="flex items-center gap-2">
+                                Unanswered Calls
+                            </span>
+                        </p>
+                        <span className="total-yes"></span>
+                    </div>
+                </div>
+
                 {/* Incoming Calls */}
                 <div className="col-span-4">
                     <div 
-                        className={`box-total-sales h-full bg-white border border-gray-200 rounded-xl dark:bg-white/[0.03] dark:border-white/[0.05] cursor-pointer transition-transform duration-200 hover:scale-105 ${selectedFilter === 'incoming' ? 'ring-2 ring-green-500 dark:ring-green-400' : ''}`}
+                        className={`box-total-sales h-full bg-white border border-gray-200 rounded-xl dark:bg-white/[0.03] dark:border-white/[0.05] cursor-pointer transition-transform duration-200 hover:scale-105 ${selectedFilter === 'incoming' ? 'ring-2 ring-violet-500 dark:ring-violet-400' : ''}`}
                         onClick={() => setSelectedFilter('incoming')}
                     >
-                        <SalesIconGreen />
+                        <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="20" cy="20" r="20" fill="#8B5CF6"/>
+                        <path d="M26.9 25.1C25.7 25.1 24.6 24.9 23.5 24.5C23.2 24.4 22.8 24.5 22.6 24.7L20.8 26.5C18 25.1 15.9 23 14.5 20.2L16.3 18.4C16.6 18.1 16.7 17.7 16.6 17.4C16.2 16.3 16 15.2 16 14C16 13.5 15.6 13 15.1 13H13C12.4 13 12 13.4 12 14C12 22.3 18.7 29 27 29C27.6 29 28 28.6 28 28V25.9C28 25.4 27.5 25.1 26.9 25.1Z" fill="white"/>
+                        </svg>
                         <h2 className="numbers-sale text-gray-900">
                             {isLoadingStats ? '...' : stats.incomingCalls}
                         </h2>
@@ -279,31 +476,17 @@ export default function CallRecordsPage() {
                         <span className="total-yes"></span>
                     </div>
                 </div>
-
-                {/* Missed Calls */}
-                <div className="col-span-4">
-                    <div 
-                        className={`box-total-sales h-full bg-white border border-gray-200 rounded-xl dark:bg-white/[0.03] dark:border-white/[0.05] cursor-pointer transition-transform duration-200 hover:scale-105 ${selectedFilter === 'missed' ? 'ring-2 ring-orange-500 dark:ring-orange-400' : ''}`}
-                        onClick={() => setSelectedFilter('missed')}
-                    >
-                        <SalesIconOrange />
-                        <h2 className="numbers-sale text-gray-900">
-                            {isLoadingStats ? '...' : stats.missedCalls}
-                        </h2>
-                        <p className="total-sale-text">
-                            <span className="flex items-center gap-2">
-                                Missed Calls
-                            </span>
-                        </p>
-                        <span className="total-yes"></span>
-                    </div>
-                </div>
             </div>
 
             {/* Call Records Table */}
             <div className="bg-white border border-gray-200 rounded-xl dark:border-white/[0.05] dark:bg-white/[0.03] shadow-theme-xs">
                 <div className="p-6">
-                    <CallRecordsTable token={generatedToken} filter={selectedFilter} />
+                    <CallRecordsTable 
+                        token={generatedToken} 
+                        filter={selectedFilter} 
+                        fromDate={fromDate}
+                        toDate={toDate}
+                    />
                 </div>
             </div>
 
@@ -384,6 +567,92 @@ export default function CallRecordsPage() {
                 </div>,
                 document.body
             )}
+
+            {/* Custom Date Range Modal */}
+            <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
+                <div className="relative w-full p-4 overflow-y-auto bg-white no-scrollbar rounded-3xl dark:bg-gray-900 lg:p-11">
+                    <div className="px-2 pr-14">
+                        <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
+                            Select Custom Date Range
+                        </h4>
+                        <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
+                            Please choose your custom start and end dates.
+                        </p>
+                    </div>
+                    <form className="flex flex-col" onSubmit={handleSaveCustomDates}>
+                        <div className="px-2 overflow-y-auto custom-scrollbar">
+                            {/* Error Message */}
+                            {dateError && (
+                                <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                                    <div className="flex items-center gap-2">
+                                        <svg className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <span className="text-sm font-medium text-red-800 dark:text-red-400">
+                                            {dateError}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+                            
+                            <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
+                                <div>
+                                    <Label>Start Date</Label>
+                                    <div className="relative">
+                                        <Input 
+                                            type="date" 
+                                            id="startDateInput"
+                                            value={customStartDate}
+                                            onChange={(e) => setCustomStartDate(e.target.value)}
+                                            required
+                                            className="pr-12"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const input = document.getElementById('startDateInput') as HTMLInputElement;
+                                                input?.showPicker?.();
+                                            }}
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                                        >
+                                            <CalenderIcon width={24} height={24} />
+                                        </button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <Label>End Date</Label>
+                                    <div className="relative">
+                                        <Input 
+                                            type="date" 
+                                            id="endDateInput"
+                                            value={customEndDate}
+                                            onChange={(e) => setCustomEndDate(e.target.value)}
+                                            required
+                                            className="pr-12"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const input = document.getElementById('endDateInput') as HTMLInputElement;
+                                                input?.showPicker?.();
+                                            }}
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                                        >
+                                            <CalenderIcon width={24} height={24} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
+                            <Button size="sm" variant="outline" type="button" onClick={closeModal}>
+                                Cancel
+                            </Button>            
+                            <Button size="sm" type="submit">Save Dates</Button>
+                        </div>
+                    </form>
+                </div>
+            </Modal>
         </div>
     );
 }

@@ -45,16 +45,17 @@ export default function AdvisorClientsTable({ rows, error }: Props) {
   const showSIPColumn = rows.some((row) => row.app?.toLowerCase() === "fydaa");
 
   const handleViewClient = (clientId: number) => {
-    if (typeof window !== "undefined") {
-      sessionStorage.setItem("selectedClientId", clientId.toString());
-      sessionStorage.setItem("clientsSkipNextPageReset", "true");
-      sessionStorage.setItem("previousPage", "/clients");
-    }
-
     // Build "from" URL that captures current clients list state (including pagination & search)
     const currentPath = pathname || "/clients";
     const currentQuery = searchParams.toString();
     const fromUrl = currentQuery ? `${currentPath}?${currentQuery}` : currentPath;
+
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("selectedClientId", clientId.toString());
+      sessionStorage.setItem("clientsSkipNextPageReset", "true");
+      // Save the full URL with page number to sessionStorage
+      sessionStorage.setItem("previousPage", fromUrl);
+    }
 
     const profileUrl = `/clients/profile?from=${encodeURIComponent(fromUrl)}`;
     router.push(profileUrl);

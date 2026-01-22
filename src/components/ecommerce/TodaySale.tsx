@@ -1,11 +1,14 @@
 "use client";
 import React from "react";
 import { SalesIcon, NewCustomerIcon, DiscIcon } from "@/icons";
+import { ArrowRightIcon } from '@heroicons/react/24/outline';
 
 interface DataProps {
   totalClients: number;
   totalAUM: number;
   activePortfoliosOrSips: number;
+  activeClients?: number;
+  inactiveClients?: number;
 }
 
 interface TodaySaleProps {
@@ -67,14 +70,48 @@ const TodaySale = ({ data, loading, appType }: TodaySaleProps) => {
         </div>
 
         <div className="sales-box-row mt-5 flex flex-nowrap xl:flex-nowrap items-stretch gap-4 overflow-x-auto xl:overflow-visible">
-          {/* Card 1: Total Active Clients */}
+          {/* Card 1: Total Clients */}
           <div className="col-span-4 shrink-0 w-[260px] xl:w-auto xl:flex-1">
-            <div className="box-total-sales h-full">
+            <div className="box-total-sales h-full hover:scale-105 transition-all duration-300 ease-in-out cursor-pointer">
               <NewCustomerIcon />
               <h2 className="numbers-sale text-gray-900 ">
                 {formatNumber(data.totalClients)}
               </h2>
-              <p className="total-sale-text">Total Active Clients</p>
+              <p className="total-sale-text">
+                <a href="/clients" className="flex items-center gap-2 hover:italic transition-all duration-300 group">
+                  Total Clients
+                  <span className="inline-block group-hover:translate-x-1 transition-transform duration-300">
+                    <ArrowRightIcon className="w-3 h-3 inline-block" />
+                  </span>
+                </a>
+              </p>
+              {/* Show active/inactive breakdown for Fydaa */}
+              {appType === "Fydaa" && (data.activeClients !== undefined || data.inactiveClients !== undefined) && (
+                <div className="mt-2 flex flex-col gap-1 text-xs">
+                  <div className="flex items-center justify-between text-gray-600 dark:text-gray-400">
+                    <a href="/clients?investmentStatus=active" className="hover:italic transition-all duration-300 group flex items-center gap-1">
+                      <span>Active:</span>
+                      <span className="inline-block group-hover:translate-x-1 transition-transform duration-300">
+                        <ArrowRightIcon className="w-2 h-2 inline-block" />
+                      </span>
+                    </a>
+                    <span className="font-semibold text-green-600 dark:text-green-400">
+                      {formatNumber(data.activeClients || 0)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-gray-600 dark:text-gray-400">
+                    <a href="/clients?investmentStatus=inactive" className="hover:italic transition-all duration-300 group flex items-center gap-1">
+                      <span>Inactive:</span>
+                      <span className="inline-block group-hover:translate-x-1 transition-transform duration-300">
+                        <ArrowRightIcon className="w-2 h-2 inline-block" />
+                      </span>
+                    </a>
+                    <span className="font-semibold text-gray-500 dark:text-gray-500">
+                      {formatNumber(data.inactiveClients || 0)}
+                    </span>
+                  </div>
+                </div>
+              )}
               <span className="total-yes"></span>
             </div>
           </div>

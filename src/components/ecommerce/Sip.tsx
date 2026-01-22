@@ -53,7 +53,7 @@ const Sip = ({ data, loading }: { data: DataProps | null; loading: boolean }) =>
 
           <div className="col-span-4">
             <div className="box-total-sales h-full hover:scale-105 transition-all duration-300 ease-in-out cursor-pointer">
-              <SalesIconOrange />
+              <SalesIcon />
               <h2 className="numbers-sale text-gray-900">{data.totalInvestedSips || 0}</h2>
               <p className="total-sale-text">
                 <a href="/sip/investedsip" className="flex items-center gap-2 hover:italic transition-all duration-300 group">
@@ -81,7 +81,7 @@ const Sip = ({ data, loading }: { data: DataProps | null; loading: boolean }) =>
 
           <div className="col-span-4">
             <div className="box-total-sales h-full hover:scale-105 transition-all duration-300 ease-in-out cursor-pointer">
-              <SalesIconGreen />
+              <SalesIconOrange />
               <h2 className="numbers-sale text-gray-900">{data.totalInActiveSips || 0}</h2>
               <p className="total-sale-text">
                 <a href="/sip/inactivesip" className="flex items-center gap-2 hover:italic  transition-all duration-300 group">
@@ -95,7 +95,7 @@ const Sip = ({ data, loading }: { data: DataProps | null; loading: boolean }) =>
 
           <div className="col-span-4">
             <div className="box-total-sales h-full hover:scale-105 transition-all duration-300 ease-in-out cursor-pointer">
-              <SalesIconOrange />
+              <SalesIconViolet />
               <h2 className="numbers-sale text-gray-900">{data.totalPartiallyExitedSips || 0}</h2>
               <p className="total-sale-text">
                 <a href="/sip/partiallyexitsip" className="flex items-center gap-2 hover:italic  transition-all duration-300 group">
@@ -109,7 +109,7 @@ const Sip = ({ data, loading }: { data: DataProps | null; loading: boolean }) =>
 
           <div className="col-span-4">
             <div className="box-total-sales h-full hover:scale-105 transition-all duration-300 ease-in-out cursor-pointer">
-              <SalesIconOrange />
+              <SalesIcon />
               <h2 className="numbers-sale text-gray-900">{data.totalCompletedSips || 0}</h2>
               <p className="total-sale-text">
                 <a href="/sip/completedsip" className="flex items-center gap-2 hover:italic  transition-all duration-300 group">
@@ -123,7 +123,7 @@ const Sip = ({ data, loading }: { data: DataProps | null; loading: boolean }) =>
 
           <div className="col-span-4">
             <div className="box-total-sales h-full hover:scale-105 transition-all duration-300 ease-in-out cursor-pointer">
-              <SalesIcon />
+              <SalesIconGreen />
               <h2 className="numbers-sale text-gray-900">{data.totalCancelledSips || 0}</h2>
               <p className="total-sale-text">
                 <a href="/sip/cancelledsip" className="flex items-center gap-2 hover:italic  transition-all duration-300 group">

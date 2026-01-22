@@ -98,7 +98,7 @@ export default function ClientProfilePage() {
                 clipRule="evenodd" 
               />
             </svg>
-            Back to {fromUrl === "/advisor-crm" ? "Advisor CRM" : "Clients"}
+            Back to {fromUrl.startsWith("/advisor-crm") ? "Advisor CRM" : "Clients"}
           </button>
         </div>
         <ComponentCard title="Client Details">

@@ -9,6 +9,8 @@ import Pagination from "@/components/tables/Pagination";
 import { useGlobalContext } from "@/context/GlobalState";
 import { useAuth } from "@/context/AuthContext";
 import { clientService } from "@/services";
+import Select from "@/components/form/Select";
+import { ChevronDownIcon } from "@/icons";
 
 export default function ClientsPage() {
   const searchParams = useSearchParams();
@@ -26,6 +28,10 @@ export default function ClientsPage() {
     return searchParams.get("search") ?? "";
   }, [searchParams]);
 
+  const initialInvestmentStatus = useMemo(() => {
+    return searchParams.get("investmentStatus") ?? "all";
+  }, [searchParams]);
+
   const [clients, setClients] = useState<AdvisorClientRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -33,6 +39,7 @@ export default function ClientsPage() {
   const [page, setPage] = useState(initialPage);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [investmentStatus, setInvestmentStatus] = useState(initialInvestmentStatus);
 
   const { user } = useAuth();
   const { appType, selectedOption, customDates } = useGlobalContext();
@@ -42,6 +49,7 @@ export default function ClientsPage() {
     searchQuery: initialSearchQuery,
     appType,
     selectedOption,
+    investmentStatus: initialInvestmentStatus,
   });
   const pageSize = 10;
 
@@ -93,6 +101,7 @@ export default function ClientsPage() {
         timeframe: timeframeValue,
         startDate: selectedOption === "custom" ? customDates.start : undefined,
         endDate: selectedOption === "custom" ? customDates.end : undefined,
+        investmentStatus: normalizedAppType === 'fydaa' ? investmentStatus : undefined,
       });
 
       console.log("Fetched response:", response);
@@ -149,7 +158,7 @@ export default function ClientsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, appType, selectedOption, customDates, page, searchQuery]);
+  }, [user?.id, appType, selectedOption, customDates, page, searchQuery, investmentStatus]);
 
   useEffect(() => {
     fetchClients();
@@ -164,15 +173,16 @@ export default function ClientsPage() {
     }
   }, []);
 
-  // Reset to page 1 when search query, appType, or timeframe changes
+  // Reset to page 1 when search query, appType, timeframe, or investmentStatus changes
   useEffect(() => {
     const prev = previousFiltersRef.current;
     const hasChanged =
       prev.searchQuery !== searchQuery ||
       prev.appType !== appType ||
-      prev.selectedOption !== selectedOption;
+      prev.selectedOption !== selectedOption ||
+      prev.investmentStatus !== investmentStatus;
 
-    previousFiltersRef.current = { searchQuery, appType, selectedOption };
+    previousFiltersRef.current = { searchQuery, appType, selectedOption, investmentStatus };
 
     if (!hasChanged) return;
 
@@ -182,7 +192,7 @@ export default function ClientsPage() {
     }
 
     setPage(1);
-  }, [searchQuery, appType, selectedOption]);
+  }, [searchQuery, appType, selectedOption, investmentStatus]);
 
   // Keep URL query parameters in sync with pagination and search state
   useEffect(() => {
@@ -201,6 +211,12 @@ export default function ClientsPage() {
       params.delete("search");
     }
 
+    if (investmentStatus && investmentStatus !== 'all') {
+      params.set("investmentStatus", investmentStatus);
+    } else {
+      params.delete("investmentStatus");
+    }
+
     const newQuery = params.toString();
     const currentQuery = searchParams.toString();
 
@@ -209,7 +225,7 @@ export default function ClientsPage() {
 
     const newUrl = newQuery ? `${pathname}?${newQuery}` : pathname;
     router.replace(newUrl);
-  }, [page, searchQuery, pathname, router, searchParams]);
+  }, [page, searchQuery, investmentStatus, pathname, router, searchParams]);
 
   // Keyboard shortcut "Cmd/Ctrl + K" focuses search input
   useEffect(() => {
@@ -229,12 +245,13 @@ export default function ClientsPage() {
 
       <div className="space-y-6">
         <ComponentCard title="Clients List">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-            }}
-            className="mb-4"
-          >
+          <div className="mb-4 flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+              }}
+              className="flex-1 w-full"
+            >
             <div className="relative search-box">
               <span className="absolute -translate-y-1/2 left-4 top-1/2 pointer-events-none">
                 <svg
@@ -262,12 +279,49 @@ export default function ClientsPage() {
                 className="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-200 bg-transparent py-2.5 pl-12 pr-4 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-800 dark:bg-gray-900 dark:bg-white/[0.03] dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800"
               />
             </div>
-          </form>
+            </form>
+
+            {/* Investment Status Filter - Only for Fydaa users */}
+            {appType?.toLowerCase() === 'fydaa' && (
+              <div className="relative min-w-[180px]">
+                <Select
+                  options={[
+                    { value: "active", label: "Active" },
+                    { value: "inactive", label: "Inactive" }
+                  ]}
+                  placeholder="Investment Status"
+                  value={investmentStatus === 'all' ? null : investmentStatus}
+                  onChange={(option) => {
+                    const newStatus = option?.value || 'all';
+                    setInvestmentStatus(newStatus);
+                    // Update URL with new investment status
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('page', '1');
+                    if (newStatus !== 'all') {
+                      url.searchParams.set('investmentStatus', newStatus);
+                    } else {
+                      url.searchParams.delete('investmentStatus');
+                    }
+                    // Preserve search query
+                    if (searchQuery) {
+                      url.searchParams.set('search', searchQuery);
+                    }
+                    window.history.pushState({}, '', url.toString());
+                    setPage(1);
+                  }}
+                />
+                <span className="absolute text-gray-500 -translate-y-1/2 pointer-events-none right-3 top-1/2 dark:text-gray-400">
+                  <ChevronDownIcon />
+                </span>
+              </div>
+            )}
+          </div>
 
           {!isLoading && total > 0 && (
             <div className="mb-3 text-sm text-gray-600 dark:text-gray-400">
               Showing {clients.length} of {total} total clients
               {searchQuery && ` (filtered by "${searchQuery}")`}
+              {appType?.toLowerCase() === 'fydaa' && investmentStatus !== 'all' && ` with ${investmentStatus} investment status`}
             </div>
           )}
 

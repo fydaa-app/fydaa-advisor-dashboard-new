@@ -20,9 +20,11 @@ interface CallRecord {
 interface CallRecordsTableProps {
   token: string | null;
   filter?: string;
+  fromDate?: string;
+  toDate?: string;
 }
 
-const CallRecordsTable: React.FC<CallRecordsTableProps> = ({ token, filter = 'all' }) => {
+const CallRecordsTable: React.FC<CallRecordsTableProps> = ({ token, filter = 'all', fromDate, toDate }) => {
   const [callRecords, setCallRecords] = useState<CallRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,10 +32,10 @@ const CallRecordsTable: React.FC<CallRecordsTableProps> = ({ token, filter = 'al
   const [totalRecords, setTotalRecords] = useState(0);
   const recordsPerPage = 10;
 
-  // Reset to page 1 when filter changes
+  // Reset to page 1 when filter or date range changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [filter]);
+  }, [filter, fromDate, toDate]);
 
   useEffect(() => {
     const fetchRecords = async () => {
@@ -72,7 +74,7 @@ const CallRecordsTable: React.FC<CallRecordsTableProps> = ({ token, filter = 'al
             break;
         }
 
-        const data = await smartfloService.fetchCallRecords(token, currentPage, recordsPerPage, callType, direction);
+        const data = await smartfloService.fetchCallRecords(token, currentPage, recordsPerPage, callType, direction, fromDate, toDate);
         setCallRecords(data.results || []);
         setTotalRecords(data.count || 0);
       } catch (err) {
@@ -84,7 +86,7 @@ const CallRecordsTable: React.FC<CallRecordsTableProps> = ({ token, filter = 'al
     };
 
     fetchRecords();
-  }, [token, currentPage, filter]);
+  }, [token, currentPage, filter, fromDate, toDate]);
 
   const formatValue = (value: string | undefined) => {
     return value || "—";

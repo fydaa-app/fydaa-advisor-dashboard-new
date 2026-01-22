@@ -635,13 +635,16 @@ p.total-sale-text {
 .sales-box-row .col-span-4:nth-child(3) .box-total-sales { background: #DCFCE7; }
 /* 4: Average YTD Performance (green icon) -> green */
 .sales-box-row > *:nth-child(4) .box-total-sales,
-.sales-box-row .col-span-4:nth-child(4) .box-total-sales { background: #DCFCE7; }
+.sales-box-row .col-span-4:nth-child(4) .box-total-sales { background: #FFF4DE; }
 /* 5: Total Transactions Value (orange icon) -> yellow */
 .sales-box-row > *:nth-child(5) .box-total-sales,
-.sales-box-row .col-span-4:nth-child(5) .box-total-sales { background: #FFF4DE; }
+.sales-box-row .col-span-4:nth-child(5) .box-total-sales { background: #F3E8FF; }
 /* 6: Active SIPs (orange icon) -> yellow */
 .sales-box-row > *:nth-child(6) .box-total-sales,
-.sales-box-row .col-span-4:nth-child(6) .box-total-sales { background: #FFF4DE; }
+.sales-box-row .col-span-4:nth-child(6) .box-total-sales { background: #FFE2E5; }
+/* 6: Active SIPs (orange icon) -> yellow */
+.sales-box-row > *:nth-child(7) .box-total-sales,
+.sales-box-row .col-span-4:nth-child(7) .box-total-sales { background: #DCFCE7; }
 .sales-box-row {
   gap: 20px;
 }
