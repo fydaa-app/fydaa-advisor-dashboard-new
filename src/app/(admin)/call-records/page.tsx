@@ -6,12 +6,6 @@ import CallRecordsTable from "@/components/tables/CallRecordsTable";
 import { smartfloService, advisorService } from "@/services";
 import { useAuth } from "@/context/AuthContext";
 import { useSmartfloToken } from "@/context/SmartfloTokenContext";
-import {
-    SalesIcon,
-    SalesIconGreen,
-    SalesIconOrange,
-    SalesIconViolet,
-} from '@/icons';
 
 interface CallStats {
     totalCalls: number;
@@ -178,14 +172,14 @@ export default function CallRecordsPage() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                             </svg>
                             <span className="text-sm font-medium text-amber-800 dark:text-amber-400">
-                                Token Inactive - {tokenExpired ? 'Token expired, please authenticate' : 'Please authenticate'} to view call records
+                                Smartflo Inactive - {tokenExpired ? 'Token expired, please login' : 'Please login'} to view call records
                             </span>
                         </div>
                         <button
                             onClick={() => setShowTokenModal(true)}
                             className="px-3 py-1 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors text-sm font-medium"
                         >
-                            Authenticate
+                            Smartflo Login 
                         </button>
                     </div>
                 </div>
@@ -210,7 +204,10 @@ export default function CallRecordsPage() {
                         className={`box-total-sales h-full bg-white border border-gray-200 rounded-xl dark:bg-white/[0.03] dark:border-white/[0.05] cursor-pointer transition-transform duration-200 hover:scale-105 ${selectedFilter === 'all' ? 'ring-2 ring-violet-500 dark:ring-violet-400' : ''}`}
                         onClick={() => setSelectedFilter('all')}
                     >
-                        <SalesIconViolet />
+                        <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="20" cy="20" r="20" fill="#8B5CF6"/>
+                        <path d="M26.9 25.1C25.7 25.1 24.6 24.9 23.5 24.5C23.2 24.4 22.8 24.5 22.6 24.7L20.8 26.5C18 25.1 15.9 23 14.5 20.2L16.3 18.4C16.6 18.1 16.7 17.7 16.6 17.4C16.2 16.3 16 15.2 16 14C16 13.5 15.6 13 15.1 13H13C12.4 13 12 13.4 12 14C12 22.3 18.7 29 27 29C27.6 29 28 28.6 28 28V25.9C28 25.4 27.5 25.1 26.9 25.1Z" fill="white"/>
+                        </svg>
                         <h2 className="numbers-sale text-gray-900">
                             {isLoadingStats ? '...' : stats.totalCalls}
                         </h2>
@@ -223,19 +220,22 @@ export default function CallRecordsPage() {
                     </div>
                 </div>
 
-                {/* Unanswered Calls */}
+                {/* Missed Calls */}
                 <div className="col-span-4">
                     <div 
-                        className={`box-total-sales h-full bg-white border border-gray-200 rounded-xl dark:bg-white/[0.03] dark:border-white/[0.05] cursor-pointer transition-transform duration-200 hover:scale-105 ${selectedFilter === 'unanswered' ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''}`}
-                        onClick={() => setSelectedFilter('unanswered')}
+                        className={`box-total-sales h-full bg-white border border-gray-200 rounded-xl dark:bg-white/[0.03] dark:border-white/[0.05] cursor-pointer transition-transform duration-200 hover:scale-105 ${selectedFilter === 'missed' ? 'ring-2 ring-red-500 dark:ring-red-400' : ''}`}
+                        onClick={() => setSelectedFilter('missed')}
                     >
-                        <SalesIcon />
+                        <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="20" cy="20" r="20" fill="#FA5A7D"/>
+                        <path d="M26.9 25.1C25.7 25.1 24.6 24.9 23.5 24.5C23.2 24.4 22.8 24.5 22.6 24.7L20.8 26.5C18 25.1 15.9 23 14.5 20.2L16.3 18.4C16.6 18.1 16.7 17.7 16.6 17.4C16.2 16.3 16 15.2 16 14C16 13.5 15.6 13 15.1 13H13C12.4 13 12 13.4 12 14C12 22.3 18.7 29 27 29C27.6 29 28 28.6 28 28V25.9C28 25.4 27.5 25.1 26.9 25.1Z" fill="white"/>
+                        </svg>
                         <h2 className="numbers-sale text-gray-900">
-                            {isLoadingStats ? '...' : stats.unansweredCalls}
+                            {isLoadingStats ? '...' : stats.missedCalls}
                         </h2>
                         <p className="total-sale-text">
                             <span className="flex items-center gap-2">
-                                Unanswered Calls
+                                Missed Calls
                             </span>
                         </p>
                         <span className="total-yes"></span>
@@ -248,7 +248,10 @@ export default function CallRecordsPage() {
                         className={`box-total-sales h-full bg-white border border-gray-200 rounded-xl dark:bg-white/[0.03] dark:border-white/[0.05] cursor-pointer transition-transform duration-200 hover:scale-105 ${selectedFilter === 'connected' ? 'ring-2 ring-green-500 dark:ring-green-400' : ''}`}
                         onClick={() => setSelectedFilter('connected')}
                     >
-                        <SalesIconGreen />
+                        <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="20" cy="20" r="20" fill="#22C55E"/>
+                        <path d="M26.9 25.1C25.7 25.1 24.6 24.9 23.5 24.5C23.2 24.4 22.8 24.5 22.6 24.7L20.8 26.5C18 25.1 15.9 23 14.5 20.2L16.3 18.4C16.6 18.1 16.7 17.7 16.6 17.4C16.2 16.3 16 15.2 16 14C16 13.5 15.6 13 15.1 13H13C12.4 13 12 13.4 12 14C12 22.3 18.7 29 27 29C27.6 29 28 28.6 28 28V25.9C28 25.4 27.5 25.1 26.9 25.1Z" fill="white"/>
+                        </svg>
                         <h2 className="numbers-sale text-gray-900">
                             {isLoadingStats ? '...' : stats.connectedCalls}
                         </h2>
@@ -261,38 +264,44 @@ export default function CallRecordsPage() {
                     </div>
                 </div>
 
-                {/* Incoming Calls */}
+                {/* Unanswered Calls */}
                 <div className="col-span-4">
                     <div 
-                        className={`box-total-sales h-full bg-white border border-gray-200 rounded-xl dark:bg-white/[0.03] dark:border-white/[0.05] cursor-pointer transition-transform duration-200 hover:scale-105 ${selectedFilter === 'incoming' ? 'ring-2 ring-green-500 dark:ring-green-400' : ''}`}
-                        onClick={() => setSelectedFilter('incoming')}
+                        className={`box-total-sales h-full bg-white border border-gray-200 rounded-xl dark:bg-white/[0.03] dark:border-white/[0.05] cursor-pointer transition-transform duration-200 hover:scale-105 ${selectedFilter === 'unanswered' ? 'ring-2 ring-orange-500 dark:ring-orange-400' : ''}`}
+                        onClick={() => setSelectedFilter('unanswered')}
                     >
-                        <SalesIconGreen />
+                        <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="20" cy="20" r="20" fill="#FB923C"/>
+                        <path d="M26.9 25.1C25.7 25.1 24.6 24.9 23.5 24.5C23.2 24.4 22.8 24.5 22.6 24.7L20.8 26.5C18 25.1 15.9 23 14.5 20.2L16.3 18.4C16.6 18.1 16.7 17.7 16.6 17.4C16.2 16.3 16 15.2 16 14C16 13.5 15.6 13 15.1 13H13C12.4 13 12 13.4 12 14C12 22.3 18.7 29 27 29C27.6 29 28 28.6 28 28V25.9C28 25.4 27.5 25.1 26.9 25.1Z" fill="white"/>
+                        </svg>
                         <h2 className="numbers-sale text-gray-900">
-                            {isLoadingStats ? '...' : stats.incomingCalls}
+                            {isLoadingStats ? '...' : stats.unansweredCalls}
                         </h2>
                         <p className="total-sale-text">
                             <span className="flex items-center gap-2">
-                                Incoming Calls
+                                Unanswered Calls
                             </span>
                         </p>
                         <span className="total-yes"></span>
                     </div>
                 </div>
 
-                {/* Missed Calls */}
+                {/* Incoming Calls */}
                 <div className="col-span-4">
                     <div 
-                        className={`box-total-sales h-full bg-white border border-gray-200 rounded-xl dark:bg-white/[0.03] dark:border-white/[0.05] cursor-pointer transition-transform duration-200 hover:scale-105 ${selectedFilter === 'missed' ? 'ring-2 ring-orange-500 dark:ring-orange-400' : ''}`}
-                        onClick={() => setSelectedFilter('missed')}
+                        className={`box-total-sales h-full bg-white border border-gray-200 rounded-xl dark:bg-white/[0.03] dark:border-white/[0.05] cursor-pointer transition-transform duration-200 hover:scale-105 ${selectedFilter === 'incoming' ? 'ring-2 ring-violet-500 dark:ring-violet-400' : ''}`}
+                        onClick={() => setSelectedFilter('incoming')}
                     >
-                        <SalesIconOrange />
+                        <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="20" cy="20" r="20" fill="#8B5CF6"/>
+                        <path d="M26.9 25.1C25.7 25.1 24.6 24.9 23.5 24.5C23.2 24.4 22.8 24.5 22.6 24.7L20.8 26.5C18 25.1 15.9 23 14.5 20.2L16.3 18.4C16.6 18.1 16.7 17.7 16.6 17.4C16.2 16.3 16 15.2 16 14C16 13.5 15.6 13 15.1 13H13C12.4 13 12 13.4 12 14C12 22.3 18.7 29 27 29C27.6 29 28 28.6 28 28V25.9C28 25.4 27.5 25.1 26.9 25.1Z" fill="white"/>
+                        </svg>
                         <h2 className="numbers-sale text-gray-900">
-                            {isLoadingStats ? '...' : stats.missedCalls}
+                            {isLoadingStats ? '...' : stats.incomingCalls}
                         </h2>
                         <p className="total-sale-text">
                             <span className="flex items-center gap-2">
-                                Missed Calls
+                                Incoming Calls
                             </span>
                         </p>
                         <span className="total-yes"></span>

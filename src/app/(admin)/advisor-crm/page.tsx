@@ -15,6 +15,7 @@ import {
 } from '@/icons';
 import { useAuth } from "@/context/AuthContext";
 import { clientService, advisorService, smartfloService } from "@/services";
+import Select from "@/components/form/Select";
 import Pagination from "@/components/tables/Pagination";
 import { useGlobalContext } from "@/context/GlobalState";
 import { useSmartfloToken } from "@/context/SmartfloTokenContext";
@@ -796,7 +797,7 @@ export default function AdvisorCRM() {
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Search by name, email, or mobile..."
-                                className="w-64 px-4 py-2 pl-10 rounded-lg text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-64 h-11 px-4 pl-10 rounded-lg text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -805,34 +806,39 @@ export default function AdvisorCRM() {
 
                         {/* Due Follow Ups Dropdown */}
                         <div className="relative">
-                            <select
-                                value={followUpFilter || ''}
-                                onChange={(e) => {
-                                    setFollowUpFilter(e.target.value || undefined);
+                            <Select
+                                options={[
+                                    { value: "overdue", label: "Overdue" },
+                                    { value: "today", label: "Today" },
+                                    { value: "week", label: "This Week" },
+                                    { value: "month", label: "This Month" },
+                                    { value: "year", label: "This Year" },
+                                    { value: "till_date", label: "Till Date" }
+                                ]}
+                                placeholder="Due Follow Ups"
+                                value={followUpFilter || null}
+                                onChange={(option) => {
+                                    setFollowUpFilter(option?.value || undefined);
                                     updatePage(1); // Reset to first page when filter changes
                                 }}
-                                className="appearance-none px-4 py-2 pr-10 rounded-lg text-sm font-medium border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                <option value="">Due Follow Ups</option>
-                                <option value="overdue">Overdue</option>
-                                <option value="today">Today</option>
-                                <option value="week">This Week</option>
-                                <option value="month">This Month</option>
-                                <option value="year">This Year</option>
-                                <option value="till_date">Till Date</option>
-                            </select>
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400">
-                                <ChevronDownIcon className="w-4 h-4" />
+                            />
+                            <span className="absolute text-gray-500 -translate-y-1/2 pointer-events-none right-3 top-1/2 dark:text-gray-400">
+                                <ChevronDownIcon />
                             </span>
                         </div>
 
                         {/* Investment Status Filter - Only for Fydaa users */}
                         {normalizedAppType === 'fydaa' && (
                             <div className="relative">
-                                <select
-                                    value={investmentStatus}
-                                    onChange={(e) => {
-                                        const newStatus = e.target.value;
+                                <Select
+                                    options={[
+                                        { value: "active", label: "Active" },
+                                        { value: "inactive", label: "Inactive" }
+                                    ]}
+                                    placeholder="Investment Status"
+                                    value={investmentStatus === 'all' ? null : investmentStatus}
+                                    onChange={(option) => {
+                                        const newStatus = option?.value || 'all';
                                         setInvestmentStatus(newStatus);
                                         // Update URL with new investment status
                                         const url = new URL(window.location.href);
@@ -851,14 +857,9 @@ export default function AdvisorCRM() {
                                         window.history.pushState({}, '', url.toString());
                                         setPage(1);
                                     }}
-                                    className="appearance-none px-4 py-2 pr-10 rounded-lg text-sm font-medium border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="all">Investment Status</option>
-                                    <option value="active">Active</option>
-                                    <option value="inactive">Inactive</option>
-                                </select>
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400">
-                                    <ChevronDownIcon className="w-4 h-4" />
+                                />
+                                <span className="absolute text-gray-500 -translate-y-1/2 pointer-events-none right-3 top-1/2 dark:text-gray-400">
+                                    <ChevronDownIcon />
                                 </span>
                             </div>
                         )}
@@ -879,7 +880,7 @@ export default function AdvisorCRM() {
                                 window.history.pushState({}, '', url.toString());
                                 setPage(1); // Reset to first page when toggling
                             }}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                            className={`h-11 px-4 rounded-lg text-sm font-medium transition-colors ${
                                 showAll
                                     ? 'bg-brand-500 text-white hover:bg-brand-600'
                                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
