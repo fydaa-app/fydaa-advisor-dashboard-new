@@ -242,7 +242,9 @@ export const fetchCallRecords = async (
   page: number = 1,
   limit: number = 10,
   callType?: string,
-  direction?: string
+  direction?: string,
+  fromDate?: string,
+  toDate?: string
 ): Promise<CallRecordsResponse> => {
   try {
     const params = new URLSearchParams({
@@ -252,6 +254,8 @@ export const fetchCallRecords = async (
     
     if (callType) params.append('call_type', callType);
     if (direction) params.append('direction', direction);
+    if (fromDate) params.append('from_date', fromDate);
+    if (toDate) params.append('to_date', toDate);
 
     const response = await fetch(`${SMARTFLO_BASE_URL}/call/records?${params.toString()}`, {
       method: 'GET',
@@ -282,9 +286,9 @@ export const fetchCallRecords = async (
 /**
  * Fetch total calls count
  */
-export const fetchTotalCalls = async (token: string): Promise<number> => {
+export const fetchTotalCalls = async (token: string, fromDate?: string, toDate?: string): Promise<number> => {
   try {
-    const data = await fetchCallRecords(token, 1, 1);
+    const data = await fetchCallRecords(token, 1, 1, undefined, undefined, fromDate, toDate);
     return data.count;
   } catch (error) {
     console.error('Error fetching total calls:', error);
@@ -302,9 +306,9 @@ export const fetchTotalCalls = async (token: string): Promise<number> => {
 /**
  * Fetch total connected calls (call_type=c, direction=outbound)
  */
-export const fetchConnectedCalls = async (token: string): Promise<number> => {
+export const fetchConnectedCalls = async (token: string, fromDate?: string, toDate?: string): Promise<number> => {
   try {
-    const data = await fetchCallRecords(token, 1, 1, 'c', 'outbound');
+    const data = await fetchCallRecords(token, 1, 1, 'c', 'outbound', fromDate, toDate);
     return data.count;
   } catch (error) {
     console.error('Error fetching connected calls:', error);
@@ -322,9 +326,9 @@ export const fetchConnectedCalls = async (token: string): Promise<number> => {
 /**
  * Fetch unanswered calls (call_type=m, direction=outbound)
  */
-export const fetchUnansweredCalls = async (token: string): Promise<number> => {
+export const fetchUnansweredCalls = async (token: string, fromDate?: string, toDate?: string): Promise<number> => {
   try {
-    const data = await fetchCallRecords(token, 1, 1, 'm', 'outbound');
+    const data = await fetchCallRecords(token, 1, 1, 'm', 'outbound', fromDate, toDate);
     return data.count;
   } catch (error) {
     console.error('Error fetching unanswered calls:', error);
@@ -342,9 +346,9 @@ export const fetchUnansweredCalls = async (token: string): Promise<number> => {
 /**
  * Fetch incoming calls (call_type=c, direction=inbound)
  */
-export const fetchIncomingCalls = async (token: string): Promise<number> => {
+export const fetchIncomingCalls = async (token: string, fromDate?: string, toDate?: string): Promise<number> => {
   try {
-    const data = await fetchCallRecords(token, 1, 1, 'c', 'inbound');
+    const data = await fetchCallRecords(token, 1, 1, 'c', 'inbound', fromDate, toDate);
     return data.count;
   } catch (error) {
     console.error('Error fetching incoming calls:', error);
@@ -362,9 +366,9 @@ export const fetchIncomingCalls = async (token: string): Promise<number> => {
 /**
  * Fetch missed calls (call_type=m, direction=inbound)
  */
-export const fetchMissedCalls = async (token: string): Promise<number> => {
+export const fetchMissedCalls = async (token: string, fromDate?: string, toDate?: string): Promise<number> => {
   try {
-    const data = await fetchCallRecords(token, 1, 1, 'm', 'inbound');
+    const data = await fetchCallRecords(token, 1, 1, 'm', 'inbound', fromDate, toDate);
     return data.count;
   } catch (error) {
     console.error('Error fetching missed calls:', error);

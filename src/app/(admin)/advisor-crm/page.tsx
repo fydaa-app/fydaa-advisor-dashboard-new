@@ -8,10 +8,10 @@ import {
     SalesIcon,
     SalesIconOrange,
     SalesIconGreen,
-    SalesIconViolet,
     PhoneIcon,
     CalenderIcon,
-    ChevronDownIcon
+    ChevronDownIcon,
+    NewCustomerIcon
 } from '@/icons';
 import { useAuth } from "@/context/AuthContext";
 import { clientService, advisorService, smartfloService } from "@/services";
@@ -723,7 +723,7 @@ export default function AdvisorCRM() {
                 {/* Total Clients */}
                 <div className="col-span-4">
                     <div className="box-total-sales h-full bg-white border border-gray-200 rounded-xl dark:bg-white/[0.03] dark:border-white/[0.05]">
-                        <SalesIcon />
+                        <NewCustomerIcon />
                         <h2 className="numbers-sale text-gray-900">{stats.totalClients}</h2>
                         <p className="total-sale-text">
                             <span className="flex items-center gap-2">
@@ -737,7 +737,7 @@ export default function AdvisorCRM() {
                 {/* Scheduled Calls */}
                 <div className="col-span-4">
                     <div className="box-total-sales h-full bg-white border border-gray-200 rounded-xl dark:bg-white/[0.03] dark:border-white/[0.05]">
-                        <SalesIconViolet />
+                        <SalesIcon />
                         <h2 className="numbers-sale text-gray-900">{stats.scheduledCalls}</h2>
                         <p className="total-sale-text">
                             <span className="flex items-center gap-2">
