@@ -84,6 +84,7 @@ export const clientService = {
       startDate?: string;
       endDate?: string;
       followUpTimeframe?: string;
+      showOverdueOnly?: boolean;
       investmentStatus?: string;
     }
   ): Promise<PaginatedClientsResponse> {
@@ -100,6 +101,7 @@ export const clientService = {
       startDate?: string;
       endDate?: string;
       followUpTimeframe?: string;
+      showOverdueOnly?: boolean;
       investmentStatus?: string;
     } = {};
     if (options?.appType) body.type = options.appType.toLowerCase();
@@ -109,6 +111,7 @@ export const clientService = {
     if (options?.startDate) body.startDate = options.startDate;
     if (options?.endDate) body.endDate = options.endDate;
     if (options?.followUpTimeframe) body.followUpTimeframe = options.followUpTimeframe;
+    if (options?.showOverdueOnly !== undefined) body.showOverdueOnly = options.showOverdueOnly;
     if (options?.investmentStatus) body.investmentStatus = options.investmentStatus;
 
     const listUrl = `${API_URL}/referrals/advisor-wise-users/${advisorId}`;
