@@ -111,7 +111,8 @@ export default function AdvisorCRM() {
         const showAllParam = searchParams.get('showAll');
         return showAllParam === 'true';
     });
-    const [followUpFilter, setFollowUpFilter] = useState<string | undefined>(undefined); // Follow-up timeframe filter
+    const [followUpFilter, setFollowUpFilter] = useState<string | undefined>(undefined);
+  const [showOverdueOnly, setShowOverdueOnly] = useState<boolean>(false); // Follow-up timeframe filter
     const [searchQuery, setSearchQuery] = useState(''); // Search query for filtering clients
     // Initialize investmentStatus from URL query params or default to 'all'
     const [investmentStatus, setInvestmentStatus] = useState<string>(() => {
@@ -244,6 +245,7 @@ export default function AdvisorCRM() {
                     startDate: selectedOption === "custom" ? customDates.start : undefined,
                     endDate: selectedOption === "custom" ? customDates.end : undefined,
                     followUpTimeframe: followUpFilter,
+                    showOverdueOnly: showOverdueOnly,
                     investmentStatus: normalizedAppType === 'fydaa' ? investmentStatus : undefined,
                 });
 
@@ -383,7 +385,7 @@ export default function AdvisorCRM() {
         // Fetch clients with pagination
         useEffect(() => {
             fetchClients();
-        }, [user?.id, page, showAll, appType, selectedOption, customDates, followUpFilter, searchQuery, investmentStatus]);
+        }, [user?.id, page, showAll, appType, selectedOption, customDates, followUpFilter, showOverdueOnly, searchQuery, investmentStatus]);
 
     // Reset to page 1 when search query or filters change (but skip when navigating back with URL params)
     useEffect(() => {
@@ -392,7 +394,7 @@ export default function AdvisorCRM() {
             return;
         }
         updatePage(1);
-    }, [searchQuery, followUpFilter, showAll, appType, selectedOption, investmentStatus]);
+    }, [searchQuery, followUpFilter, showOverdueOnly, showAll, appType, selectedOption, investmentStatus]);
 
 
 
@@ -808,7 +810,6 @@ export default function AdvisorCRM() {
                         <div className="relative">
                             <Select
                                 options={[
-                                    { value: "overdue", label: "Overdue" },
                                     { value: "today", label: "Today" },
                                     { value: "week", label: "This Week" },
                                     { value: "month", label: "This Month" },
@@ -825,6 +826,28 @@ export default function AdvisorCRM() {
                             <span className="absolute text-gray-500 -translate-y-1/2 pointer-events-none right-3 top-1/2 dark:text-gray-400">
                                 <ChevronDownIcon />
                             </span>
+                        </div>
+
+                        {/* Overdue Only Toggle */}
+                        <div className="flex items-center gap-3">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <div className="relative">
+                                    <input
+                                        type="checkbox"
+                                        checked={showOverdueOnly}
+                                        onChange={(e) => {
+                                            setShowOverdueOnly(e.target.checked);
+                                            updatePage(1);
+                                        }}
+                                        className="sr-only"
+                                    />
+                                    <div className={`block h-8 w-14 rounded-full transition-all duration-300 border-2 ${showOverdueOnly ? 'bg-primary border-primary shadow-lg' : 'bg-gray-200 border-gray-300 dark:bg-gray-700 dark:border-gray-600'}`}></div>
+                                    <div className={`dot absolute left-1 top-1 h-6 w-6 rounded-full bg-white transition-all duration-300 shadow-md ${showOverdueOnly ? 'translate-x-6 shadow-lg' : ''}`}></div>
+                                </div>
+                                <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                                    Overdue Only
+                                </span>
+                            </label>
                         </div>
 
                         {/* Investment Status Filter - Only for Fydaa users */}
