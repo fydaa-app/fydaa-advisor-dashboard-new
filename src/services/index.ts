@@ -46,6 +46,12 @@ export {
   type ClientData,
 } from './clientService';
 
+// Lead services
+export {
+  leadService,
+  type LeadData,
+} from './leadService';
+
 // Client Profile services
 export {
   clientProfileService,

@@ -282,7 +282,7 @@ export default function CallRecordsPage() {
             await generateAndSetToken(tokenEmail, tokenPassword);
             setTokenError('');
             setTokenExpired(false);
-            alert('Token generated successfully!');
+            //alert('Token generated successfully!');
             setShowTokenModal(false);
         } catch (error) {
             console.error('Token generation error:', error);

@@ -116,6 +116,7 @@ export default function ClientsPage() {
         networth: u.total_investment ?? 0,
         onboardingDate: u.createdAt,
         hasSIP: u.hasSIP === 1,
+        managerName: u.managerName ?? null,
       }));
 
       // Sort by onboarding date (newest first)

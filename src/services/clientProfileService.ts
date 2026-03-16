@@ -234,6 +234,8 @@ export interface ClientProfileData {
       email: string | null;
     };
     sipId: number;
+    lumpsumId?: number | null;
+    type?: 'purchase' | 'additional_purchase' | 'redemption' | null;
     totalOrders: number;
     successfulOrders: number;
     failedOrders: number;

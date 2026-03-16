@@ -10,10 +10,11 @@ export interface AdvisorClientRow {
   lastName: string;
   email: string;
   mobileNumber: string;
-  app?: string | null;          // This field indicates the app, e.g. "fydaa"
+  app?: string | null;
   networth: number;
   onboardingDate: string;
   hasSIP: boolean;
+  managerName?: string | null;
 }
 
 interface Props {
@@ -85,6 +86,7 @@ export default function AdvisorClientsTable({ rows, error }: Props) {
                   <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">Onboarding Date</TableCell>
                   <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">First Name</TableCell>
                   <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">Last Name</TableCell>
+                  <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">Manager Name</TableCell>
                   <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">Email</TableCell>
                   <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">Mobile Number</TableCell>
 
@@ -109,6 +111,7 @@ export default function AdvisorClientsTable({ rows, error }: Props) {
                       <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">{r.firstName || "—"}</span>
                     </TableCell>
                     <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">{r.lastName || "—"}</TableCell>
+                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">{r.managerName || "—"}</TableCell>
                     <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">{r.email || "—"}</TableCell>
                     <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">{r.mobileNumber || "—"}</TableCell>
 

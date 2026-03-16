@@ -31,6 +31,8 @@ interface ClientWithCalls {
     onboardingDate: string;
     followUpDate: string | null;
     previousCallDate: string | null;
+    managerName?: string | null;
+    notes?: { note: string } | null;
 }
 
 // Statistics interface
@@ -143,6 +145,11 @@ export default function AdvisorCRM() {
     const [callRefId, setCallRefId] = useState('');
     const [isUpdatingCallStatus, setIsUpdatingCallStatus] = useState(false);
     const [showConnectionQuestion, setShowConnectionQuestion] = useState(false);
+
+    const [showNotesModal, setShowNotesModal] = useState(false);
+    const [selectedClientForNotes, setSelectedClientForNotes] = useState<ClientWithCalls | null>(null);
+    const [noteInput, setNoteInput] = useState('');
+    const [isSavingNotes, setIsSavingNotes] = useState(false);
     
     // Track if we should skip the filter reset (when navigating back with a page param in URL)
     const skipFilterReset = useRef(false);
@@ -262,6 +269,8 @@ export default function AdvisorCRM() {
                     onboardingDate: client.createdAt,
                     followUpDate: client.followUpDate || null,
                     previousCallDate: client.previousCallDate || null,
+                    managerName: client.managerName || null,
+                    notes: client.notes || null,
                 }));
 
                 // Apply search filter if query exists
@@ -315,6 +324,8 @@ export default function AdvisorCRM() {
                     onboardingDate: client.createdAt,
                     followUpDate: client.followUpDate || null,
                     previousCallDate: client.previousCallDate || null,
+                    managerName: client.managerName || null,
+                    notes: client.notes || null,
                 }));
 
                 // Calculate statistics
@@ -510,7 +521,7 @@ export default function AdvisorCRM() {
             );
 
             handleCloseCalendar();
-            alert('Follow-up date saved successfully!');
+            //alert('Follow-up date saved successfully!');
         } catch (error) {
             console.error('Error saving follow-up date:', error);
             alert(`Failed to save follow-up date: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -600,6 +611,43 @@ export default function AdvisorCRM() {
         setIsAuthenticating(false);
         setIsCalling(false);
         setIsUpdatingCallStatus(false);
+    };
+
+    const handleOpenNotesModal = (client: ClientWithCalls) => {
+        setSelectedClientForNotes(client);
+        setNoteInput(client.notes?.note || '');
+        setShowNotesModal(true);
+    };
+
+    const handleCloseNotesModal = () => {
+        setShowNotesModal(false);
+        setSelectedClientForNotes(null);
+        setNoteInput('');
+    };
+
+    const handleSaveNotes = async () => {
+        if (!selectedClientForNotes || !noteInput.trim()) return;
+
+        setIsSavingNotes(true);
+        try {
+            await clientService.updateClientNotes(selectedClientForNotes.id, noteInput.trim());
+            
+            setClients(prevClients => 
+                prevClients.map(client => 
+                    client.id === selectedClientForNotes.id 
+                        ? { ...client, notes: { note: noteInput.trim() } }
+                        : client
+                )
+            );
+
+            handleCloseNotesModal();
+            //alert('Notes saved successfully!');
+        } catch (error) {
+            console.error('Error saving notes:', error);
+            alert(`Failed to save notes: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        } finally {
+            setIsSavingNotes(false);
+        }
     };
 
     const handleCallConnected = async (wasConnected: boolean) => {
@@ -935,6 +983,7 @@ export default function AdvisorCRM() {
                                         <TableRow>
                                             <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-xs dark:text-gray-400">Onboarding Date</TableCell>
                                             <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-xs dark:text-gray-400">Name</TableCell>
+                                            <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-xs dark:text-gray-400">Manager Name</TableCell>
                                             <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-xs dark:text-gray-400">Email</TableCell>
                                             <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-xs dark:text-gray-400">Mobile Number</TableCell>
                                             <TableCell isHeader className="px-5 py-3 font-bold text-gray-900 text-start text-xs dark:text-gray-400">Networth</TableCell>
@@ -956,6 +1005,7 @@ export default function AdvisorCRM() {
                                                         {`${client.firstName || ""} ${client.lastName || ""}`.trim() || "—"}
                                                     </span>
                                                 </TableCell>
+                                                <TableCell className="px-4 py-3 text-gray-500 text-start text-sm dark:text-gray-400">{client.managerName || "—"}</TableCell>
                                                 <TableCell className="px-4 py-3 text-gray-500 text-start text-sm dark:text-gray-400">{client.email || "—"}</TableCell>
                                                 <TableCell className="px-4 py-3 text-gray-500 text-start text-sm dark:text-gray-400">{client.mobileNumber || "—"}</TableCell>
                                                 <TableCell className="px-4 py-3 text-gray-500 text-start text-sm dark:text-gray-400">
@@ -1014,6 +1064,15 @@ export default function AdvisorCRM() {
                                                             onClick={() => handleOpenCalendar(client)}
                                                         >
                                                             <CalenderIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                                                        </button>
+                                                        <button
+                                                            className="p-2 hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors rounded-full"
+                                                            title="Add notes"
+                                                            onClick={() => handleOpenNotesModal(client)}
+                                                        >
+                                                            <svg className="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                            </svg>
                                                         </button>
                                                     </div>
                                                 </TableCell>
@@ -1385,6 +1444,69 @@ export default function AdvisorCRM() {
                                 </div>
                             </>
                         )}
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* Notes Modal */}
+            {showNotesModal && typeof document !== 'undefined' && createPortal(
+                <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                                Notes
+                            </h2>
+                            <button
+                                onClick={handleCloseNotesModal}
+                                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                            >
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        {selectedClientForNotes && (
+                            <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Client</p>
+                                <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                                    {`${selectedClientForNotes.firstName || ""} ${selectedClientForNotes.lastName || ""}`.trim()}
+                                </p>
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                    {selectedClientForNotes.email}
+                                </p>
+                            </div>
+                        )}
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Notes
+                            </label>
+                            <textarea
+                                value={noteInput}
+                                onChange={(e) => setNoteInput(e.target.value)}
+                                placeholder="Enter notes about this client..."
+                                rows={5}
+                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white resize-none"
+                            />
+                        </div>
+
+                        <div className="flex gap-3 mt-6">
+                            <button
+                                onClick={handleCloseNotesModal}
+                                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSaveNotes}
+                                disabled={isSavingNotes || !noteInput.trim()}
+                                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
+                            >
+                                {isSavingNotes ? 'Saving...' : 'Save'}
+                            </button>
+                        </div>
                     </div>
                 </div>,
                 document.body
