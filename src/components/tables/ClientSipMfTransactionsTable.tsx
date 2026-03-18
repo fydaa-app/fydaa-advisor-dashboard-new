@@ -26,6 +26,8 @@ interface SipMfTransaction {
   userId: number;
   userInfo: UserInfo;
   sipId: number;
+  lumpsumId?: number | null;
+  type?: 'purchase' | 'additional_purchase' | 'redemption' | null;
   totalOrders: number;
   successfulOrders: number;
   failedOrders: number;
@@ -98,6 +100,54 @@ const OrderStateBadge = ({ state }: { state: 'submitted' | 'failed' | 'successfu
   );
 };
 
+type TransactionType = 'lumpsum' | 'buy' | 'sell' | 'unknown';
+
+const getTransactionType = (transaction: SipMfTransaction): TransactionType => {
+  if (transaction.lumpsumId != null) {
+    return 'lumpsum';
+  }
+  if (transaction.type === 'purchase' || transaction.type === 'additional_purchase') {
+    return 'buy';
+  }
+  if (transaction.type === 'redemption') {
+    return 'sell';
+  }
+  return 'unknown';
+};
+
+const TypeBadge = ({ transaction }: { transaction: SipMfTransaction }) => {
+  const type = getTransactionType(transaction);
+  
+  const baseClasses = "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium";
+  let variantClasses = "";
+  let typeText = "";
+
+  switch (type) {
+    case 'lumpsum':
+      variantClasses = "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400";
+      typeText = "Lumpsum";
+      break;
+    case 'buy':
+      variantClasses = "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
+      typeText = "Buy";
+      break;
+    case 'sell':
+      variantClasses = "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
+      typeText = "Sell";
+      break;
+    case 'unknown':
+      variantClasses = "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400";
+      typeText = "Unknown";
+      break;
+  }
+
+  return (
+    <span className={`${baseClasses} ${variantClasses}`}>
+      {typeText}
+    </span>
+  );
+};
+
 export default function ClientSipMfTransactionsTable({ transactions, error }: Props) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
@@ -149,6 +199,7 @@ export default function ClientSipMfTransactionsTable({ transactions, error }: Pr
                   <th className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400 w-12"></th>
                   <th className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">Transaction ID</th>
                   <th className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">Email</th>
+                  <th className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">Type</th>
                   <th className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">Total Orders</th>
                   <th className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">Successful</th>
                   <th className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">Failed</th>
@@ -191,6 +242,9 @@ export default function ClientSipMfTransactionsTable({ transactions, error }: Pr
                         <td className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                           {transaction.userInfo.email || "—"}
                         </td>
+                        <td className="px-4 py-3 text-start">
+                          <TypeBadge transaction={transaction} />
+                        </td>
                         <td className="px-4 py-3 text-center text-gray-500 text-theme-sm dark:text-gray-400">
                           {transaction.totalOrders}
                         </td>
@@ -216,7 +270,7 @@ export default function ClientSipMfTransactionsTable({ transactions, error }: Pr
 
                       {isExpanded && (
                         <tr>
-                          <td colSpan={10} className="px-0 py-0 bg-gray-50 dark:bg-white/[0.01]">
+                          <td colSpan={11} className="px-0 py-0 bg-gray-50 dark:bg-white/[0.01]">
                             <div className="px-8 py-4">
                               <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
                                 Order Details ({transaction.orders.length} orders)

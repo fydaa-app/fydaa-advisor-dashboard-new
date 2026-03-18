@@ -14,6 +14,8 @@ export interface ClientData {
   hasSIP: number;
   followUpDate?: string | null;
   previousCallDate?: string | null;
+  managerName?: string | null;
+  notes?: { note: string } | null;
 }
 
 interface AdvisorWiseUsersResponse {
@@ -32,6 +34,8 @@ interface AdvisorWiseUsersResponse {
       hasSIP: number;
       followUpDate?: string | null;
       previousCallDate?: string | null;
+      managerName?: string | null;
+      notes?: { note: string } | null;
     }>;
     pagination: {
       total: number;
@@ -151,6 +155,8 @@ export const clientService = {
       hasSIP: user.hasSIP,
       followUpDate: user.followUpDate,
       previousCallDate: user.previousCallDate,
+      managerName: user.managerName || null,
+      notes: user.notes || null,
     }));
 
     console.log(`Fetched ${clients.length} clients (page ${result.data.pagination.page}/${result.data.pagination.totalPages})`);
@@ -201,6 +207,29 @@ export const clientService = {
 
     if (!response.ok) {
       throw new Error(`Failed to update previous call date: ${response.status} ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    return result;
+  },
+
+  async updateClientNotes(
+    clientId: number,
+    note: string
+  ): Promise<{ success: boolean; message: string }> {
+    if (!API_URL) throw new Error('API_URL environment variable is not set');
+
+    const headers = getHeaders();
+    const updateUrl = `${API_URL}/referrals/update-user-notes/${clientId}`;
+
+    const response = await fetch(updateUrl, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ note }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to update notes: ${response.status} ${response.statusText}`);
     }
 
     const result = await response.json();
