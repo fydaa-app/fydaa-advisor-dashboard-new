@@ -16,8 +16,10 @@ export default function ClientsPage() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
+  const { user } = useAuth();
+  const { appType, selectedOption, customDates } = useGlobalContext();
 
-  // Initialize state from URL query parameters on first render
+  // Initialize state from URL query parameters on first render (must be before useState)
   const initialPage = useMemo(() => {
     const pageParam = searchParams.get("page");
     const parsed = pageParam ? parseInt(pageParam, 10) : 1;
@@ -28,30 +30,24 @@ export default function ClientsPage() {
     return searchParams.get("search") ?? "";
   }, [searchParams]);
 
-  const initialInvestmentStatus = useMemo(() => {
-    return searchParams.get("investmentStatus") ?? "all";
-  }, [searchParams]);
-
-  const [clients, setClients] = useState<AdvisorClientRow[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
   const [page, setPage] = useState(initialPage);
-  const [totalPages, setTotalPages] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [investmentStatus, setInvestmentStatus] = useState(initialInvestmentStatus);
-
-  const { user } = useAuth();
-  const { appType, selectedOption, customDates } = useGlobalContext();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
+  const [investmentStatus, setInvestmentStatus] = useState('all');
   const skipNextPageResetRef = useRef(false);
   const previousFiltersRef = useRef({
-    searchQuery: initialSearchQuery,
-    appType,
-    selectedOption,
-    investmentStatus: initialInvestmentStatus,
+    searchQuery: '',
+    appType: '',
+    selectedOption: '',
+    investmentStatus: 'all'
   });
+
   const pageSize = 10;
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [clients, setClients] = useState<AdvisorClientRow[]>([]);
 
   const fetchClients = useCallback(async () => {
     console.log(
@@ -94,7 +90,11 @@ export default function ClientsPage() {
         | "custom"
         | undefined;
 
-      const response = await clientService.fetchAdvisorClients(user.id, {
+      // Use selectedAdvisor from localStorage ONLY if user is admin
+      const selectedAdvisorId = user?.isAdmin ? localStorage.getItem("selectedAdvisorId") : null;
+      const effectiveAdvisorId = selectedAdvisorId ? parseInt(selectedAdvisorId, 10) : user.id;
+
+      const response = await clientService.fetchAdvisorClients(effectiveAdvisorId, {
         appType: normalizedAppType,
         page: searchQuery ? 1 : page,
         limit: searchQuery ? 1000 : pageSize,
@@ -238,6 +238,15 @@ export default function ClientsPage() {
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  // Listen for advisor changes and refresh
+  useEffect(() => {
+    const handleAdvisorChange = () => {
+      window.location.reload();
+    };
+    window.addEventListener('advisor-changed', handleAdvisorChange);
+    return () => window.removeEventListener('advisor-changed', handleAdvisorChange);
   }, []);
 
   return (

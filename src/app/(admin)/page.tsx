@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useGlobalContext } from "@/context/GlobalState";
 import TodaySaleWrapper from "@/components/ecommerce/TodaySaleWrapper";
 import TodaySaleWrapperMf from "@/components/ecommerce/TodaySaleWrapperMf";
@@ -11,6 +11,15 @@ import SipWrapper from "@/components/ecommerce/SipWrapper";
 
 export default function Ecommerce() {
   const { appType } = useGlobalContext();
+
+  // Listen for advisor changes and refresh
+  useEffect(() => {
+    const handleAdvisorChange = () => {
+      window.location.reload();
+    };
+    window.addEventListener('advisor-changed', handleAdvisorChange);
+    return () => window.removeEventListener('advisor-changed', handleAdvisorChange);
+  }, []);
 
   return (
     <div className="flex flex-col gap-6">

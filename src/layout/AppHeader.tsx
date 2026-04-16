@@ -2,6 +2,8 @@
 import { ThemeToggleButton } from "@/components/common/ThemeToggleButton";
 import UserDropdown from "@/components/header/UserDropdown";
 import { useSidebar } from "@/context/SidebarContext";
+import { useAuth } from "@/context/AuthContext";
+import Cookies from 'js-cookie';
 import Image from "next/image";
 import Link from "next/link";
 import React, { useState, useEffect, useRef } from "react";
@@ -19,6 +21,15 @@ const AppHeader: React.FC = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
+  const [advisors, setAdvisors] = useState<{ value: string; label: string }[]>([]);
+  const [selectedAdvisor, setSelectedAdvisor] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("selectedAdvisorId") || "";
+    }
+    return "";
+  });
+  
+  const { user } = useAuth();
   
   const { 
     isMobileOpen, 
@@ -121,6 +132,54 @@ const AppHeader: React.FC = () => {
       setEndDate(customDates.end);
     }
   }, [isOpen, customDates]);
+
+  useEffect(() => {
+    const fetchAdvisors = async () => {
+      // Check isAdmin from JWT token
+      const token = localStorage.getItem("authToken");
+      let jwtIsAdmin = false;
+      try {
+        const parts = token?.split('.');
+        if (parts?.length === 3) {
+          jwtIsAdmin = JSON.parse(atob(parts[1])).isAdmin || false;
+        }
+      } catch { jwtIsAdmin = false; }
+
+      if (user?.isAdmin || jwtIsAdmin) {
+        try {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/referrals/get-all-advisors`, {
+            headers: {
+              Authorization: `Bearer ${Cookies.get("authToken") || ""}`,
+            },
+          });
+          const data = await response.json();
+          if (data.data) {
+            const advisorList = data.data.map((advisor: { id: number; name: string }) => ({
+              value: advisor.id.toString(),
+              label: advisor.name,
+            }));
+            setAdvisors(advisorList);
+          }
+        } catch (error) {
+          console.error("Failed to fetch advisors:", error);
+        }
+      }
+    };
+
+    fetchAdvisors();
+  }, [user?.isAdmin]);
+
+  const handleAdvisorChange = (option: { value: string; label: string } | null) => {
+    if (option) {
+      setSelectedAdvisor(option.value);
+      localStorage.setItem("selectedAdvisorId", option.value);
+      window.dispatchEvent(new Event('advisor-changed'));
+    } else {
+      setSelectedAdvisor("");
+      localStorage.removeItem("selectedAdvisorId");
+      window.dispatchEvent(new Event('advisor-changed'));
+    }
+  };
 
   return (
     <header className="sticky top-0 flex w-full bg-white border-gray-200 z-99999 dark:border-gray-800 dark:bg-gray-900 lg:border-b">
@@ -232,6 +291,30 @@ const AppHeader: React.FC = () => {
               <ChevronDownIcon/>
             </span>
           </div>
+
+          {(user?.isAdmin || (() => {
+            const token = localStorage.getItem("authToken");
+            try {
+              const parts = token?.split('.');
+              if (parts?.length === 3) {
+                return JSON.parse(atob(parts[1])).isAdmin || false;
+              }
+            } catch {}
+            return false;
+          })()) && (
+            <div className="relative w-48">
+              <Select 
+                options={advisors}
+                placeholder="Select Advisor"
+                onChange={handleAdvisorChange}
+                value={selectedAdvisor || null}
+                className="dark:bg-dark-900"
+              />
+              <span className="absolute text-gray-500 -translate-y-1/2 pointer-events-none right-3 top-1/2 dark:text-gray-400">
+                <ChevronDownIcon/>
+              </span>
+            </div>
+          )}
 
           <div className="flex items-center gap-2 2xsm:gap-3">            
             <ThemeToggleButton />           

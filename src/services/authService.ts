@@ -29,6 +29,8 @@ export interface LoginResponse {
     email: string;
     mobile: string;
     experienceInYears: number;
+    role: string;
+    isAdmin: boolean;
   };
 }
 
@@ -61,11 +63,11 @@ export const login = async (email: string, password: string): Promise<LoginRespo
 };
 
 /**
- * Forgot password - request password reset link
+ * Forgot password - send OTP
  */
 export const forgotPassword = async (email: string): Promise<ApiResponse<null>> => {
   try {
-    const response = await fetch(`${API_URL}/referrals/forgot-password-advisor`, {
+    const response = await fetch(`${API_URL}/referrals/advisor/send-password-reset-otp`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -96,21 +98,23 @@ export const forgotPassword = async (email: string): Promise<ApiResponse<null>> 
 };
 
 /**
- * Reset password with token
+ * Verify OTP and reset password
  */
 export const resetPasswordWithToken = async (
-  token: string,
+  email: string,
+  otp: string,
   newPassword: string,
   confirmPassword: string
 ): Promise<ApiResponse<null>> => {
   try {
-    const response = await fetch(`${API_URL}/referrals/reset-password-with-token-advisor`, {
+    const response = await fetch(`${API_URL}/referrals/advisor/verify-otp-reset-password`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        token,
+        email,
+        otp,
         newPassword,
         confirmPassword,
       }),

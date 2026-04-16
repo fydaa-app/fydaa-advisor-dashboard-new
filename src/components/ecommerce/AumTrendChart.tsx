@@ -64,8 +64,9 @@ export default function AumTrendChart() {
         return;
       }
 
-      // Use selectedEmployee if available, otherwise use logged-in user's ID
-      const advisorId = selectedEmployee || (user?.id ? String(user.id) : undefined);
+      // Use selectedAdvisor from localStorage (admin selection) ONLY if user is admin
+      const selectedAdvisorId = user?.isAdmin ? localStorage.getItem("selectedAdvisorId") : null;
+      const advisorId = selectedAdvisorId || selectedEmployee || (user?.id ? String(user.id) : undefined);
 
       // Backend requires advisorId
       if (!advisorId) {

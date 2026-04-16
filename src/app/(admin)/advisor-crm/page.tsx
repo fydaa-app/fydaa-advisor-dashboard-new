@@ -121,7 +121,16 @@ export default function AdvisorCRM() {
         const investmentStatusParam = searchParams.get('investmentStatus');
         return investmentStatusParam || 'all';
     });
-    
+
+    // Listen for advisor changes and refresh
+    useEffect(() => {
+        const handleAdvisorChange = () => {
+            window.location.reload();
+        };
+        window.addEventListener('advisor-changed', handleAdvisorChange);
+        return () => window.removeEventListener('advisor-changed', handleAdvisorChange);
+    }, []);
+
     // Calendar modal states
     const [showCalendarModal, setShowCalendarModal] = useState(false);
     const [selectedClient, setSelectedClient] = useState<ClientWithCalls | null>(null);
@@ -243,8 +252,12 @@ export default function AdvisorCRM() {
                     | "custom"
                     | undefined;
 
+                // Use selectedAdvisor from localStorage ONLY if user is admin
+                const selectedAdvisorId = user?.isAdmin ? localStorage.getItem("selectedAdvisorId") : null;
+                const effectiveAdvisorId = selectedAdvisorId ? parseInt(selectedAdvisorId, 10) : user.id;
+
                 // Fetch clients with backend pagination and filters
-                const response = await clientService.fetchAdvisorClients(user.id, {
+                const response = await clientService.fetchAdvisorClients(effectiveAdvisorId, {
                     page: searchQuery ? 1 : page,
                     limit: searchQuery ? 1000 : pageSize,
                     appType: normalizedAppType,
@@ -305,7 +318,7 @@ export default function AdvisorCRM() {
                 
                 // Calculate all client stats from ALL clients (not just current page)
                 // We need to fetch all clients for accurate stats
-                const allClientsResponse = await clientService.fetchAdvisorClients(user.id, {
+                const allClientsResponse = await clientService.fetchAdvisorClients(effectiveAdvisorId, {
                     page: 1,
                     limit: 10000, // Get all clients for stat calculation
                     appType: normalizedAppType,

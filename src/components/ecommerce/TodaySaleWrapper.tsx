@@ -13,8 +13,9 @@ const TodaySaleWrapper = () => {
 
   useEffect(() => {
     const fetchSalesData = async () => {
-      // Use selectedEmployee if available, otherwise fallback to logged-in user's ID
-      const advisorId = selectedEmployee || user?.id?.toString();
+      // Use selectedAdvisor from localStorage (admin selection) ONLY if user is admin
+      const selectedAdvisorId = user?.isAdmin ? localStorage.getItem("selectedAdvisorId") : null;
+      const advisorId = selectedAdvisorId || selectedEmployee || user?.id?.toString();
 
       if (!advisorId) {
         console.error("No advisor ID available");

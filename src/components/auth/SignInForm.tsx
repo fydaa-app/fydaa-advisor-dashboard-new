@@ -56,27 +56,17 @@ export default function SignInForm() {
       });
 
       // Transform advisor data to Employee format
-      // Extract role from JWT token (it's in the token payload)
-      // For now, we'll decode it or use a default
-      let role = "advisor"; // Default role
-      try {
-        // Decode JWT token to get role
-        const tokenParts = data.token.split('.');
-        if (tokenParts.length === 3) {
-          const payload = JSON.parse(atob(tokenParts[1]));
-          role = payload.role || "advisor";
-        }
-      } catch  {
-        // If decoding fails, use default
-        role = "advisor";
-      }
+      // Use role and isAdmin directly from API response
+      const role = data.advisor.role || "advisor";
+      const isAdmin = data.advisor.isAdmin || false;
 
       // Map advisor to Employee format
       const employeeData = {
         id: data.advisor.id,
         name: data.advisor.name,
         email: data.advisor.email,
-        role: role
+        role: role,
+        isAdmin: isAdmin
       };
 
       // Store full advisor data in localStorage for profile page
@@ -85,7 +75,9 @@ export default function SignInForm() {
         name: data.advisor.name,
         email: data.advisor.email,
         mobile: data.advisor.mobile,
-        experienceInYears: data.advisor.experienceInYears
+        experienceInYears: data.advisor.experienceInYears,
+        role: role,
+        isAdmin: isAdmin
       }));
 
       // Update auth context (this will handle navigation)

@@ -136,6 +136,15 @@ export default function Leads() {
         direction: 'desc'
     });
 
+    // Listen for advisor changes and refresh
+    useEffect(() => {
+        const handleAdvisorChange = () => {
+            window.location.reload();
+        };
+        window.addEventListener('advisor-changed', handleAdvisorChange);
+        return () => window.removeEventListener('advisor-changed', handleAdvisorChange);
+    }, []);
+
     useEffect(() => {
         const fetchAdvisorData = async () => {
             if (!user?.id) {
@@ -198,7 +207,11 @@ export default function Leads() {
                 | "custom"
                 | undefined;
 
-            const response = await leadService.fetchAdvisorLeads(user.id, {
+            // Use selectedAdvisor from localStorage ONLY if user is admin
+            const selectedAdvisorId = user?.isAdmin ? localStorage.getItem("selectedAdvisorId") : null;
+            const effectiveAdvisorId = selectedAdvisorId ? parseInt(selectedAdvisorId, 10) : user.id;
+
+            const response = await leadService.fetchAdvisorLeads(effectiveAdvisorId, {
                 page: searchQuery ? 1 : page,
                 limit: searchQuery ? 1000 : pageSize,
                 timeframe: timeframeValue,
@@ -248,7 +261,7 @@ export default function Leads() {
             setTotalPages(response.pagination.totalPages);
             setTotal(response.pagination.total);
 
-            const allLeadsResponse = await leadService.fetchAdvisorLeads(user.id, {
+            const allLeadsResponse = await leadService.fetchAdvisorLeads(effectiveAdvisorId, {
                 page: 1,
                 limit: 10000,
                 timeframe: timeframeValue,

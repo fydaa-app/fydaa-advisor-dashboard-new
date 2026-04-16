@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import Cookies from "js-cookie";
 import Sip from "@/components/ecommerce/Sip";
 import { useGlobalContext } from "@/context/GlobalState";
+import { useAuth } from "@/context/AuthContext";
 
 interface CardData {
   type: string;
@@ -51,6 +52,7 @@ const SipWrapper = () => {
   });
   const [loading, setLoading] = useState(true);
   const { selectedOption, customDates, selectedEmployee } = useGlobalContext();
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchSipData = async () => {
@@ -84,9 +86,13 @@ const SipWrapper = () => {
           url += `timeframe=${selectedOption || "monthly"}`;
         }
         
+        // Use selectedAdvisor from localStorage (admin selection) ONLY if user is admin
+        const selectedAdvisorId = user?.isAdmin ? localStorage.getItem("selectedAdvisorId") : null;
+        const effectiveAdvisorId = selectedAdvisorId || selectedEmployee;
+        
         // For advisor role, use advisorId instead of employeeId
-        if (selectedEmployee) {
-          url += `&advisorId=${selectedEmployee}`;
+        if (effectiveAdvisorId) {
+          url += `&advisorId=${effectiveAdvisorId}`;
         }
 
         console.log("Attempting to fetch SIP cards data from:", url);
