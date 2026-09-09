@@ -1,6 +1,6 @@
 import { getCookie } from 'cookies-next';
 
-const STOCK_API_URL = process.env.NEXT_PUBLIC_STOCK_API_URL;
+const STOCK_API_URL = (process.env.NEXT_PUBLIC_STOCK_API_URL || 'https://stocktransaction.fydaa.com').replace(/\/+$/, '') + '/';
 const ONBOARDING_API_URL = process.env.NEXT_PUBLIC_ONBOARDING_API_URL;
 
 const getAuthToken = (): string | null => {

@@ -58,7 +58,7 @@ class XIRRService {
   private authKey: string;
 
   constructor() {
-    this.baseURL = process.env.NEXT_PUBLIC_STOCK_API_URL || 'https://stocktransaction.fydaa.com/';
+    this.baseURL = (process.env.NEXT_PUBLIC_STOCK_API_URL || 'https://stocktransaction.fydaa.com').replace(/\/+$/, '') + '/';
     this.authKey = process.env.NEXT_PUBLIC_XIRR_AUTH_KEY || '';
     
     if (!this.authKey) {

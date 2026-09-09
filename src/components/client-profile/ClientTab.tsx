@@ -12,6 +12,7 @@ import TransactionTab from "./TransactionTab";
 import ProfileTab from "./ProfileTab";
 import ReportsTab from "./ReportsTab";
 import PerformanceXIRRTable from "../tables/PerformanceXIRRTable";
+import AccountsTab from "./AccountsTab";
 
 interface ClientTabProps {
   clientData: ClientProfileData;
@@ -233,7 +234,7 @@ export default function ClientTab({ clientData }: ClientTabProps) {
         <div className="flex flex-col gap-5">
           {/* Tabs Navigation */}
           <div className="flex gap-2 overflow-x-auto">
-            {["Portfolio", "Transaction", isSavestment ? "Stock" : "Mutual Funds", "Profile", "Reports"].map(
+            {["Portfolio", "Transaction", isSavestment ? "Stock" : "Mutual Funds", ...(isSavestment ? ["Account Ledger"] : []), "Profile", "Reports"].map(
               (tab) => (
                 <button
                   key={tab}
@@ -282,6 +283,11 @@ export default function ClientTab({ clientData }: ClientTabProps) {
               ) : (
                 <StockTabFydaa clientData={clientData} />
               ))}
+
+            {/* Accounts Tab */}
+            {activeTab === "Account Ledger" && (
+              <AccountsTab userId={userDetails.id} />
+            )}
 
             {/* Profile Tab */}
             {activeTab === "Profile" && <ProfileTab clientData={clientData} />}
