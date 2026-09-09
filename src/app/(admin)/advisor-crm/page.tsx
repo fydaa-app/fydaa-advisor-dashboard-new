@@ -1100,18 +1100,39 @@ export default function AdvisorCRM() {
 
                 {/* Pagination */}
                 {!isLoading && !error && clients.length > 0 && totalPages > 1 && (
-                    <div className="flex items-center justify-between border-t border-gray-200 px-6 py-4 dark:border-white/[0.05]">
-                        <div className="text-sm text-gray-700 dark:text-gray-400">
-                            Showing page <span className="font-medium">{page}</span> of{" "}
-                            <span className="font-medium">{totalPages}</span> ({total} total clients)
+                <div className="border-t border-gray-200 px-4 py-4 sm:px-6 dark:border-white/[0.06]">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
+                        {/* Page information */}
+                        <div className="text-center sm:text-left">
+                            <span className="text-sm text-gray-500 dark:text-gray-400">
+                                Showing{" "}
+                                <span className="font-medium text-gray-700 dark:text-gray-200">
+                                    page {page}
+                                </span>{" "}
+                                of{" "}
+                                <span className="font-medium text-gray-700 dark:text-gray-200">
+                                    {totalPages}
+                                </span>
+                                <span className="mx-2 text-gray-300 dark:text-gray-600">
+                                    ·
+                                </span>
+                                {total} total clients
+                            </span>
                         </div>
-                        <Pagination
-                            currentPage={page}
-                            totalPages={totalPages}
-                            onPageChange={updatePage}
-                        />
+
+                        {/* Pagination controls */}
+                        <div className="flex justify-center sm:justify-end">
+                            <Pagination
+                                currentPage={page}
+                                totalPages={totalPages}
+                                onPageChange={updatePage}
+                                showGoToPage
+                            />
+                        </div>
                     </div>
-                )}
+                </div>
+            )}
             </div>
 
             {/* Calendar Modal */}
