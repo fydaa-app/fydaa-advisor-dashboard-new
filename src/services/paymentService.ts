@@ -1,6 +1,6 @@
 import { getCookie } from "cookies-next";
 
-const PAYMENT_API_URL = process.env.NEXT_PUBLIC_PAYMENT_API_URL;
+const PAYMENT_API_URL = (process.env.NEXT_PUBLIC_PAYMENT_API_URL || '').replace(/\/+$/, '') + '/';
 
 // ============= Types & Interfaces =============
 
@@ -62,11 +62,11 @@ export const paymentService = {
     page: number = 1,
     limit: number = 10
   ): Promise<AccountLedgerResponse> {
-    if (!PAYMENT_API_URL) {
+    if (!process.env.NEXT_PUBLIC_PAYMENT_API_URL) {
       throw new Error("PAYMENT_API_URL environment variable is not set");
     }
 
-    const url = `${PAYMENT_API_URL}/subscription/account-ledgers/user/${userId}?page=${page}&limit=${limit}`;
+    const url = `${PAYMENT_API_URL}subscription/account-ledgers/user/${userId}?page=${page}&limit=${limit}`;
 
     const response = await fetch(url, {
       method: "GET",
