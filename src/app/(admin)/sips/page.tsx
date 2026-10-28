@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import ComponentCard from "@/components/common/ComponentCard";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import SipMfTransactionsTable from "@/components/tables/SipMfTransactionsTable";
@@ -10,13 +11,37 @@ import { useGlobalContext } from "@/context/GlobalState";
 import { useAuth } from "@/context/AuthContext";
 import { getSipMfTransactions, SipMfTransaction, type FrontendStatus } from "@/services/sipMfTransactionService";
 
+const VALID_STATUSES: Array<FrontendStatus | 'all'> = ['all', 'SUCCESS', 'FAILED', 'PARTIAL', 'IN_PROCESS'];
+
 export default function SipsPage() {
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const initialPage = useMemo(() => {
+    const pageParam = searchParams.get("page");
+    const parsed = pageParam ? parseInt(pageParam, 10) : 1;
+    return Number.isNaN(parsed) || parsed < 1 ? 1 : parsed;
+  }, [searchParams]);
+
+  const initialSearchQuery = useMemo(() => {
+    return searchParams.get("search") ?? "";
+  }, [searchParams]);
+
+  const initialStatusFilter = useMemo(() => {
+    const statusParam = searchParams.get("status");
+    if (statusParam && VALID_STATUSES.includes(statusParam as FrontendStatus | 'all')) {
+      return statusParam as FrontendStatus | 'all';
+    }
+    return 'all' as const;
+  }, [searchParams]);
+
   const [transactions, setTransactions] = useState<SipMfTransaction[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<FrontendStatus | 'all'>('all');
-  const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
+  const [statusFilter, setStatusFilter] = useState<FrontendStatus | 'all'>(initialStatusFilter);
+  const [page, setPage] = useState(initialPage);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
 
@@ -24,6 +49,7 @@ export default function SipsPage() {
   const { selectedOption, customDates } = useGlobalContext();
   const inputRef = useRef<HTMLInputElement>(null);
   const pageSize = 10;
+  const skipNextPageResetRef = useRef(false);
 
   const prevFiltersRef = useRef({ searchQuery, statusFilter, selectedOption, startDate: customDates.start, endDate: customDates.end });
 
@@ -35,20 +61,67 @@ export default function SipsPage() {
     { value: 'IN_PROCESS', label: 'In Process' },
   ];
 
+  // When navigating back from the profile page, skip the first automatic page reset
   useEffect(() => {
-    const filtersChanged = 
+    if (typeof window === "undefined") return;
+    if (sessionStorage.getItem("sipsSkipNextPageReset") === "true") {
+      skipNextPageResetRef.current = true;
+      sessionStorage.removeItem("sipsSkipNextPageReset");
+    }
+  }, []);
+
+  useEffect(() => {
+    const filtersChanged =
       prevFiltersRef.current.searchQuery !== searchQuery ||
       prevFiltersRef.current.statusFilter !== statusFilter ||
       prevFiltersRef.current.selectedOption !== selectedOption ||
       prevFiltersRef.current.startDate !== customDates.start ||
       prevFiltersRef.current.endDate !== customDates.end;
 
-    if (filtersChanged && page !== 1) {
-      setPage(1);
+    prevFiltersRef.current = { searchQuery, statusFilter, selectedOption, startDate: customDates.start, endDate: customDates.end };
+
+    if (!filtersChanged) return;
+
+    if (skipNextPageResetRef.current) {
+      skipNextPageResetRef.current = false;
+      return;
     }
 
-    prevFiltersRef.current = { searchQuery, statusFilter, selectedOption, startDate: customDates.start, endDate: customDates.end };
+    if (page !== 1) {
+      setPage(1);
+    }
   }, [searchQuery, statusFilter, selectedOption, customDates.start, customDates.end, page]);
+
+  // Keep URL query parameters in sync with pagination, search, and status
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (page && page > 1) {
+      params.set("page", page.toString());
+    } else {
+      params.delete("page");
+    }
+
+    if (searchQuery) {
+      params.set("search", searchQuery);
+    } else {
+      params.delete("search");
+    }
+
+    if (statusFilter && statusFilter !== 'all') {
+      params.set("status", statusFilter);
+    } else {
+      params.delete("status");
+    }
+
+    const newQuery = params.toString();
+    const currentQuery = searchParams.toString();
+
+    if (newQuery === currentQuery) return;
+
+    const newUrl = newQuery ? `${pathname}?${newQuery}` : pathname;
+    router.replace(newUrl);
+  }, [page, searchQuery, statusFilter, pathname, router, searchParams]);
 
   useEffect(() => {
     const fetchTransactions = async () => {

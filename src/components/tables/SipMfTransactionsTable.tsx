@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { SipMfTransaction } from "@/services/sipMfTransactionService";
 
 interface Props {
@@ -60,6 +61,9 @@ const OrderStateBadge = ({ state }: { state: 'submitted' | 'failed' | 'successfu
 };
 
 export default function SipMfTransactionsTable({ transactions, error }: Props) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -74,6 +78,21 @@ export default function SipMfTransactionsTable({ transactions, error }: Props) {
       newExpanded.add(transactionId);
     }
     setExpandedRows(newExpanded);
+  };
+
+  const handleViewClient = (clientId: number) => {
+    const currentPath = pathname || "/sips";
+    const currentQuery = searchParams.toString();
+    const fromUrl = currentQuery ? `${currentPath}?${currentQuery}` : currentPath;
+
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("selectedClientId", clientId.toString());
+      sessionStorage.setItem("sipsSkipNextPageReset", "true");
+      sessionStorage.setItem("previousPage", fromUrl);
+    }
+
+    const profileUrl = `/clients/profile?from=${encodeURIComponent(fromUrl)}`;
+    router.push(profileUrl);
   };
 
   const formatDate = (dateString: string) => {
@@ -117,6 +136,7 @@ export default function SipMfTransactionsTable({ transactions, error }: Props) {
                   <th className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">User Name</th>
                   <th className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">Referred By</th>
                   <th className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">Email</th>
+                  <th className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">Phone</th>
                   <th className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">Total Orders</th>
                   <th className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">Successful</th>
                   <th className="px-5 py-3 font-bold text-gray-900 text-start text-theme-xs dark:text-gray-400">Failed</th>
@@ -130,6 +150,7 @@ export default function SipMfTransactionsTable({ transactions, error }: Props) {
                 {transactions.map((transaction) => {
                   const isExpanded = expandedRows.has(transaction.transactionId);
                   const userName = `${transaction.userInfo.firstName || ""} ${transaction.userInfo.lastName || ""}`.trim() || "—";
+                  const canViewClient = Boolean(transaction.userId) && userName !== "—";
 
                   return (
                     <React.Fragment key={transaction.transactionId}>
@@ -158,15 +179,29 @@ export default function SipMfTransactionsTable({ transactions, error }: Props) {
                           </span>
                         </td>
                         <td className="px-5 py-4 text-start">
-                          <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
-                            {userName || "—"}
-                          </span>
+                          {canViewClient ? (
+                            <button
+                              type="button"
+                              onClick={() => handleViewClient(transaction.userId)}
+                              className="block font-medium text-blue-600 text-theme-sm hover:text-blue-800 hover:underline dark:text-blue-400 dark:hover:text-blue-300 text-left"
+                              title="View Client Profile"
+                            >
+                              {userName}
+                            </button>
+                          ) : (
+                            <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
+                              {userName}
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                           {getReferredByName(transaction.referredUserInfo)}
                         </td>
                         <td className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                           {transaction.userInfo.email || "—"}
+                        </td>
+                        <td className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                          {transaction.userInfo.mobileNumber || "—"}
                         </td>
                         <td className="px-4 py-3 text-center text-gray-500 text-theme-sm dark:text-gray-400">
                           {transaction.totalOrders}
@@ -193,7 +228,7 @@ export default function SipMfTransactionsTable({ transactions, error }: Props) {
 
                       {isExpanded && (
                         <tr>
-                          <td colSpan={12} className="px-0 py-0 bg-gray-50 dark:bg-white/[0.01]">
+                          <td colSpan={13} className="px-0 py-0 bg-gray-50 dark:bg-white/[0.01]">
                             <div className="px-8 py-4">
                               <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
                                 Order Details ({transaction.orders.length} orders)
