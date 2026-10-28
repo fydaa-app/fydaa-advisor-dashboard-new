@@ -77,6 +77,7 @@ export interface UserInfo {
   firstName: string;
   lastName: string;
   email: string;
+  mobileNumber?: string;
 }
 
 export interface ReferredUserInfo {

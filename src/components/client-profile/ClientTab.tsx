@@ -13,6 +13,7 @@ import ProfileTab from "./ProfileTab";
 import ReportsTab from "./ReportsTab";
 import PerformanceXIRRTable from "../tables/PerformanceXIRRTable";
 import AccountsTab from "./AccountsTab";
+import ClientCrmActions from "@/components/crm/ClientCrmActions";
 
 interface ClientTabProps {
   clientData: ClientProfileData;
@@ -223,6 +224,24 @@ export default function ClientTab({ clientData }: ClientTabProps) {
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* CRM Actions */}
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                  Actions
+                </h3>
+                <ClientCrmActions
+                  client={{
+                    id: userDetails.id,
+                    firstName: userDetails.firstName,
+                    lastName: userDetails.lastName,
+                    email: userDetails.email,
+                    mobileNumber: userDetails.mobileNumber,
+                    followUpDate: userDetails.followUpDate ?? null,
+                    notes: userDetails.notes ?? null,
+                  }}
+                />
               </div>
             </div>
           </div>

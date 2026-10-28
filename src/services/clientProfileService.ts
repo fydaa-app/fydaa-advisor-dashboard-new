@@ -188,6 +188,9 @@ export interface ClientProfileData {
     mfiaId: string | null;
     advisorId: number | null;
     relationshipmanagerId: number | null;
+    followUpDate?: string | null;
+    previousCallDate?: string | null;
+    notes?: { note: string } | null;
   };
   userSubscriptionDetails: Array<{
     plan_id: number;
