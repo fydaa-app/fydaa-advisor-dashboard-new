@@ -11,11 +11,12 @@ import {
     NewCustomerIcon
 } from '@/icons';
 import { useAuth } from "@/context/AuthContext";
-import { clientService } from "@/services";
+import { clientService, type ClientData } from "@/services";
 import Select from "@/components/form/Select";
 import Pagination from "@/components/tables/Pagination";
 import { useGlobalContext } from "@/context/GlobalState";
 import ClientCrmActions from "@/components/crm/ClientCrmActions";
+import { exportClientsToCSV, exportClientsToXLSX } from "@/utils/clientCrmExport";
 
 // Client data interface
 interface ClientWithCalls {
@@ -112,6 +113,8 @@ export default function AdvisorCRM() {
     const [followUpFilter, setFollowUpFilter] = useState<string | undefined>(undefined);
   const [showOverdueOnly, setShowOverdueOnly] = useState<boolean>(false); // Follow-up timeframe filter
     const [searchQuery, setSearchQuery] = useState(''); // Search query for filtering clients
+    const [showExportDropdown, setShowExportDropdown] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
     // Initialize investmentStatus from URL query params or default to 'all'
     const [investmentStatus, setInvestmentStatus] = useState<string>(() => {
         const investmentStatusParam = searchParams.get('investmentStatus');
@@ -378,6 +381,91 @@ export default function AdvisorCRM() {
         }).format(amount);
     };
 
+    const mapClientForExport = (client: ClientData): ClientWithCalls => ({
+        id: client.id,
+        firstName: client.firstName,
+        lastName: client.lastName,
+        email: client.email,
+        mobileNumber: client.mobileNumber,
+        networth: client.total_investment || 0,
+        onboardingDate: client.createdAt,
+        followUpDate: client.followUpDate || null,
+        previousCallDate: client.previousCallDate || null,
+        managerName: client.managerName || null,
+        notes: client.notes || null,
+    });
+
+    const applySearchFilter = (clientsToFilter: ClientWithCalls[]): ClientWithCalls[] => {
+        if (!searchQuery) return clientsToFilter;
+        const query = searchQuery.toLowerCase();
+        return clientsToFilter.filter((client) => (
+            client.firstName?.toLowerCase().includes(query) ||
+            client.lastName?.toLowerCase().includes(query) ||
+            client.mobileNumber?.toLowerCase().includes(query) ||
+            client.email?.toLowerCase().includes(query) ||
+            `${client.firstName} ${client.lastName}`.toLowerCase().includes(query)
+        ));
+    };
+
+    const fetchAllClientsForExport = async (): Promise<ClientWithCalls[]> => {
+        if (!user?.id) return [];
+
+        const timeframeValue = selectedOption as
+            | "daily"
+            | "weekly"
+            | "monthly"
+            | "yearly"
+            | "till_date"
+            | "custom"
+            | undefined;
+
+        const selectedAdvisorId = user?.isAdmin ? localStorage.getItem("selectedAdvisorId") : null;
+        const effectiveAdvisorId = selectedAdvisorId ? parseInt(selectedAdvisorId, 10) : user.id;
+
+        const response = await clientService.fetchAdvisorClients(effectiveAdvisorId, {
+            page: 1,
+            limit: 10000,
+            appType: normalizedAppType,
+            timeframe: timeframeValue,
+            startDate: selectedOption === "custom" ? customDates.start : undefined,
+            endDate: selectedOption === "custom" ? customDates.end : undefined,
+            followUpTimeframe: followUpFilter,
+            showOverdueOnly: showOverdueOnly,
+            investmentStatus: normalizedAppType === 'fydaa' ? investmentStatus : undefined,
+        });
+
+        const mappedClients = response.clients.map(mapClientForExport);
+        return applySearchFilter(mappedClients);
+    };
+
+    const handleExportCSV = async () => {
+        try {
+            setIsExporting(true);
+            setError(null);
+            const allClients = await fetchAllClientsForExport();
+            exportClientsToCSV(allClients);
+        } catch (err) {
+            console.error('Error exporting clients to CSV:', err);
+            setError('Failed to export clients. Please try again.');
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
+    const handleExportXLSX = async () => {
+        try {
+            setIsExporting(true);
+            setError(null);
+            const allClients = await fetchAllClientsForExport();
+            exportClientsToXLSX(allClients);
+        } catch (err) {
+            console.error('Error exporting clients to XLSX:', err);
+            setError('Failed to export clients. Please try again.');
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     // View client profile
     const handleViewClient = (clientId: number) => {
         // Build the current URL with page number, showAll state, and investment status
@@ -603,6 +691,81 @@ export default function AdvisorCRM() {
                         >
                             {showAll ? 'Show All ✓' : 'Show All'}
                         </button>
+
+                        {/* Export Dropdown */}
+                        <div className="relative">
+                            <button
+                                type="button"
+                                onClick={() => setShowExportDropdown(!showExportDropdown)}
+                                disabled={isLoading || isExporting || total === 0}
+                                className="h-11 px-4 rounded-lg text-sm font-medium transition-colors border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            >
+                                <svg
+                                    className="w-5 h-5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                    />
+                                </svg>
+                                <span>
+                                    {isExporting
+                                        ? 'Exporting...'
+                                        : `Export ${total > 0 ? `(${total})` : ''}`}
+                                </span>
+                                <svg
+                                    className="w-4 h-4"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M19 9l-7 7-7-7"
+                                    />
+                                </svg>
+                            </button>
+
+                            {showExportDropdown && !isExporting && (
+                                <div className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 z-50">
+                                    <div className="py-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setShowExportDropdown(false);
+                                                handleExportCSV();
+                                            }}
+                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                            Export as CSV
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setShowExportDropdown(false);
+                                                handleExportXLSX();
+                                            }}
+                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                            </svg>
+                                            Export as XLSX
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 
